@@ -1,0 +1,26 @@
+
+type Wallet @entity {
+    id            : ID!
+    transactions  : [Transaction!]!
+}
+
+type Transaction @entity {
+    id            : ID!  
+    date          : Int!
+    value         : Int!
+    tokenSymbol   : String
+    tokenName     : String
+    tokenDecimals : Int
+    direction     : ValueDirection!
+    status        : Status!
+}
+
+enum ValueDirection {
+    IN,
+    OUT
+}
+enum Status {
+    executed,
+    pending,
+    error
+}
