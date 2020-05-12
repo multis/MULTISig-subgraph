@@ -3,6 +3,8 @@
 
 This script allows to pull the entire transaction history from a Multisig wallet (Gnosis Multisig or GSNMultisig)
 
+
+
 ## Getting Started
 
 ### Install dependencies
@@ -26,6 +28,3 @@ MNEMONIC=
 ```
 node index.js
 ```
-
-
-
