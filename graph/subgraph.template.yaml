@@ -1,0 +1,109 @@
+specVersion: 0.0.2
+description: Multisig Subgraph
+schema:
+  file: ./schema.graphql
+dataSources:
+  #####################################################################################
+  ## GSN FACTORY
+  - kind: ethereum/contract
+    name: GSNMultisigFactory
+    network: {{network}}
+    source:
+      address: '{{factories.gsn.addr}}'
+      abi: GSNMultisigFactory
+      startBlock: {{factories.gsn.birthBlock}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - Wallet
+        - Genesis
+      abis:
+        - name: GSNMultisigFactory
+          file: ./abis/GSNMultisigFactory.json
+      callHandlers:
+        - function: create(address[],uint256,uint256)
+          handler: handleContractInstantiation
+      file: ./src/factory.ts
+
+  #####################################################################################
+  ## GNOSIS FACTORY
+  - kind: ethereum/contract
+    name: GnosisMultisigFactory
+    network: {{network}}
+    source:
+      address: '{{factories.gnosis.addr}}'
+      abi: GSNMultisigFactory
+      startBlock: {{factories.gnosis.birthBlock}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - Wallet
+      abis:
+        - name: GSNMultisigFactory
+          file: ./abis/GSNMultisigFactory.json
+      eventHandlers:
+        - event: ContractInstantiation(address,address)
+          handler: handleContractInstantiation
+      file: ./src/factory.ts
+
+templates:
+  - kind: ethereum/contract
+    name: GSNMultiSigWalletWithDailyLimit
+    network: {{network}}
+    source:
+      abi: GSNMultiSigWalletWithDailyLimit
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - Wallet
+        - Transaction
+      abis:
+        - name: GSNMultiSigWalletWithDailyLimit
+          file: ./abis/GSNMultiSigWalletWithDailyLimit.json
+      eventHandlers:
+        - event: Execution(indexed uint256)
+          handler: handleExecution
+        - event: ExecutionFailure(indexed uint256)
+          handler: handleExecutionFailure
+        - event: Deposit(indexed address,uint256)
+          handler: handleDeposit
+        - event: OwnerAddition(indexed address)
+          handler: handleOwnerAddition
+        - event: OwnerRemoval(indexed address)
+          handler: handleOwnerRemoval
+        - event: DailyLimitChange(uint256)
+          handler: handleDailyLimitChange
+        - event: RequirementChange(uint256)
+          handler: handleRequirementChange
+        - event: Submission(indexed uint256)
+          handler: handleSubmission
+        - event: Confirmation(indexed address,indexed uint256)
+          handler: handleConfirmation
+        - event: Revocation(indexed address,indexed uint256)
+          handler: handleRevocation
+      file: ./src/wallet.ts
+  - kind: ethereum/contract
+    name: ERC20
+    network: {{network}}
+    source:
+      abi: ERC20
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - Wallet
+        - Transaction
+      abis:
+        - name: ERC20
+          file: ./abis/ERC20.json
+      eventHandlers:
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleERC20Transfer
+      file: ./src/wallet.ts

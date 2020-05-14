@@ -1,0 +1,7 @@
+{
+  "network": "rinkeby",
+  "factories": {
+    "gsn": {"addr": "0x64C50306e1061C76D00AA7920484d87f90f8DD5F", "birthBlock": 5756898},
+    "gnosis": {"addr": "0x6e95c8e8557abc08b46f3c347ba06f8dc012763f", "birthBlock": 1821876}
+  }
+}
