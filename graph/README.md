@@ -33,11 +33,12 @@ cd ./ethereum-multisig-transaction-history/graph
 1. Build
 
 ```
-$ yarn install
-$ yarn prepare:mainnet|rinkeby
-$ yarn codegen
-$ yarn build
+$ .script/build.sh --reset --code-gen --network mainnet|rinkeby
 ```
+
+- `--reset || -r` deletes the build and generated code folders
+- `--code-gen || -c` generate code 
+- `--network || -n` select a target network (mainnet or rinkeby)
 
 2. Start a local node
 
@@ -50,9 +51,9 @@ $ graph deploy \
     --ipfs http://localhost:5001/ \
     gjeanmart/multisig
 ```
-wait wait wait... for the node to index everything
 
-dev dev dev... do you job
+can't really work without an archive node at disposition. 
+
 
 ## Deploy on production
 
@@ -65,13 +66,11 @@ $ graph auth https://api.thegraph.com/deploy/ <token>
 2. deploy
 
 ```
-$ graph deploy \
-    --debug \
-    --node https://api.thegraph.com/deploy/ \
-    --ipfs https://api.thegraph.com/ipfs/ \
-    gjeanmart/multisig
+$ ./script/deploy.sh --network mainnet|rinkeby --local
 ```
 
+- `--network || -n` select a target network (mainnet or rinkeby)
+- `--local | -l`  deploy on a local node rather than TheGraph node (default)
 
 ## Queries
 

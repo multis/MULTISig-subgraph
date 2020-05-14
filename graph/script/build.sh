@@ -38,6 +38,7 @@ eval set -- "$PARAMS"
 
 if [ $RESET -eq "1" ]; then
     rm -rf build/ generated/ subgraph.yaml
+    CODE_GEN="1"
 fi
 
 # Prepare subgraph (--network)
