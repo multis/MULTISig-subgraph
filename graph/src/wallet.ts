@@ -6,7 +6,7 @@ import { Execution, Submission, Deposit,
 import { Transfer } from '../generated/templates/ERC20/ERC20'
 import { Wallet, Transaction } from '../generated/schema'
 import { zeroBigInt, concat } from './utils'
-import { log, Address, crypto, Bytes, ByteArray } from '@graphprotocol/graph-ts'
+import { log, Address, crypto, Bytes, ByteArray, BigInt } from '@graphprotocol/graph-ts'
 
 
 
@@ -25,7 +25,7 @@ export function handleSubmission(event: Submission): void {
 }
 
 export function handleConfirmation(event: Confirmation): void {
-    
+
     let multisigAddr = event.address
     let wallet = Wallet.load(multisigAddr.toHex())
 
@@ -68,7 +68,11 @@ export function handleExecution (event: Execution): void {
         transaction.executionId = event.params.transactionId
         transaction.from = multisigAddr
         transaction.to = callResult.value0
-        if(callResult.value1 > zeroBigInt()) {
+        if(callResult.value2.length > 0) {
+            transaction.type = "CONTRACT"
+            transaction.value = callResult.value1
+            transaction.token = "0x0000000000000000000000000000000000000000" // ETH
+        } else if(callResult.value1 > zeroBigInt()) {
             transaction.type = "VALUE"
             transaction.value = callResult.value1
             transaction.token = "0x0000000000000000000000000000000000000000" // ETH
@@ -77,7 +81,7 @@ export function handleExecution (event: Execution): void {
         transaction.save()
     
         wallet = pushTransactionIfNotExist(wallet, transaction)
-    
+
         wallet.save()
 
     } else {
@@ -288,12 +292,16 @@ function handleERC20Transfer2(id: Address, event: Transfer): void {
 
 function loadOrCreateTransaction(multisig: Address, txHash: Bytes): Transaction {
     let id = crypto.keccak256(concat(multisig, txHash)).toHex()
-    let transaction = Transaction.load(id)
-    if(transaction == null) {
-        return new Transaction(id.toString())
-    } else {
-        return <Transaction> transaction
-    }
+
+    // it is more efficient to create than load (https://github.com/graphprotocol/support/wiki/common-patterns#updating-entities-in-the-store-efficiently)
+    // let transaction = Transaction.load(id)
+    // if(transaction == null) {
+    //     return new Transaction(id.toString())
+    // } else {
+    //     return <Transaction> transaction
+    // }
+
+    return new Transaction(id.toString())
 }
 
 function pushTransactionIfNotExist(wallet: Wallet|null, transaction: Transaction): Wallet|null {
@@ -301,12 +309,11 @@ function pushTransactionIfNotExist(wallet: Wallet|null, transaction: Transaction
 
     let transactions = wallet.transactions
 
-    if (transactions.indexOf(transaction.id, 0) > -1) {
-       return wallet
-
-    } else {
+    if (transactions.indexOf(transaction.id, 0) == -1) {
         transactions.push(transaction.id)
         wallet.transactions = transactions
-        return wallet
     }
+
+    wallet.totalTransactions = BigInt.fromI32(wallet.transactions.length)
+    return wallet
 }

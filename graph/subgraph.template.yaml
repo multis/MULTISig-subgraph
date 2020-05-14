@@ -22,33 +22,38 @@ dataSources:
       abis:
         - name: GSNMultisigFactory
           file: ./abis/GSNMultisigFactory.json
-      callHandlers:
-        - function: create(address[],uint256,uint256)
+        - name: GSNMultiSigWalletWithDailyLimit
+          file: ./abis/GSNMultiSigWalletWithDailyLimit.json
+      eventHandlers:
+        - event: ContractInstantiation(address,address)
           handler: handleContractInstantiation
       file: ./src/factory.ts
 
   #####################################################################################
   ## GNOSIS FACTORY
-  - kind: ethereum/contract
-    name: GnosisMultisigFactory
-    network: {{network}}
-    source:
-      address: '{{factories.gnosis.addr}}'
-      abi: GSNMultisigFactory
-      startBlock: {{factories.gnosis.birthBlock}}
-    mapping:
-      kind: ethereum/events
-      apiVersion: 0.0.4
-      language: wasm/assemblyscript
-      entities:
-        - Wallet
-      abis:
-        - name: GSNMultisigFactory
-          file: ./abis/GSNMultisigFactory.json
-      eventHandlers:
-        - event: ContractInstantiation(address,address)
-          handler: handleContractInstantiation
-      file: ./src/factory.ts
+  # - kind: ethereum/contract
+  #   name: GnosisMultisigFactory
+  #   network: {{network}}
+  #   source:
+  #     address: '{{factories.gnosis.addr}}'
+  #     abi: GSNMultisigFactory
+  #     startBlock: {{factories.gnosis.birthBlock}}
+  #   mapping:
+  #     kind: ethereum/events
+  #     apiVersion: 0.0.4
+  #     language: wasm/assemblyscript
+  #     entities:
+  #       - Wallet
+  #       - Genesis
+  #     abis:
+  #       - name: GSNMultisigFactory
+  #         file: ./abis/GSNMultisigFactory.json
+  #       - name: GSNMultiSigWalletWithDailyLimit
+  #         file: ./abis/GSNMultiSigWalletWithDailyLimit.json
+  #     eventHandlers:
+  #       - event: ContractInstantiation(address,address)
+  #         handler: handleContractInstantiation
+  #     file: ./src/factory.ts
 
 templates:
   - kind: ethereum/contract

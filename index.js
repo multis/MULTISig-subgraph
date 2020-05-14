@@ -10,9 +10,9 @@
   const Web3 = require('web3')
   const readlineSync = require('readline-sync')
   const request = require('request-promise')
-  const MULTISIG_ABI = require('./abi/MultiSigWalletWithDailyLimit.json')
-  const MULTISIG_FACTORY_ABI = require('./abi/MultisigWalletFactory.json')
-  const ERC20_ABI = require('./abi/ERC20.json')
+  const MULTISIG_ABI = require('./graph/abis/GSNMultiSigWalletWithDailyLimit.json')
+  const MULTISIG_FACTORY_ABI = require('./graph/abis/GSNMultisigFactory.json')
+  const ERC20_ABI = require('./graph/abis/ERC20.json')
 
   ///////////////////////////////////////////////////////////////////////////////////////////////
   // FUNCTIONS

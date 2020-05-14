@@ -1,30 +1,39 @@
-import {  CreateCall } from '../generated/GSNMultisigFactory/GSNMultisigFactory'
+import {  CreateCall, ContractInstantiation } from '../generated/GSNMultisigFactory/GSNMultisigFactory'
+import { GSNMultiSigWalletWithDailyLimit  } from '../generated/templates/GSNMultiSigWalletWithDailyLimit/GSNMultiSigWalletWithDailyLimit'
 import { Wallet, Genesis, Token } from '../generated/schema'
 import { GSNMultiSigWalletWithDailyLimit as GSNMultiSigWalletWithDailyLimitContract,
          ERC20 as ERC20Contract } from '../generated/templates'
 import { Bytes, Address, dataSource, BigInt, log } from '@graphprotocol/graph-ts'
 import { hardcodedTokens } from './hardcodedTokens'
+import { zeroBigInt } from './utils'
 
 declare function require(moduleNames: string[], onLoad: (...args: any[]) => void): void;
 
 
-export function handleContractInstantiation(call: CreateCall): void {
+export function handleContractInstantiation(event: ContractInstantiation): void {
 
   genesis(dataSource.network())
 
-  let wallet = new Wallet(call.outputs.wallet.toHex())
-  wallet.factoryAddress = call.transaction.from
-  wallet.creationBlock = call.block.number
-  wallet.creationDate = call.block.timestamp
+  let wallet = new Wallet(event.params.instantiation.toHex())
+
+  let multisig = GSNMultiSigWalletWithDailyLimit.bind(event.params.instantiation)
+  let owners = multisig.getOwners()
+  let required = multisig.required()
+  let dailyLimit = multisig.dailyLimit()
+
+  wallet.factoryAddress = event.transaction.from
+  wallet.creationBlock = event.block.number
+  wallet.creationDate = event.block.timestamp
+  wallet.totalTransactions = zeroBigInt()
   wallet.transactions = []
   wallet.pending = []
-  wallet.owners = <Array<Bytes>> call.inputs._owners
-  wallet.required = call.inputs._required
-  wallet.dailyLimit = call.inputs._dailyLimit
+  wallet.owners = <Array<Bytes>> owners
+  wallet.required = required
+  wallet.dailyLimit = dailyLimit
   wallet.save()
 
   // Instanciate a new datasource
-  GSNMultiSigWalletWithDailyLimitContract.create(call.outputs.wallet)
+  GSNMultiSigWalletWithDailyLimitContract.create(event.params.instantiation)
 }
 
 

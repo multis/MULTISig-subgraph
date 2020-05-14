@@ -1,50 +1,51 @@
 type Genesis @entity {
-    id              : ID!
-    tokens          : [Token!]!
+    id                  : ID!
+    tokens              : [Token!]!
 }
 
 type Token @entity {
-    id              : ID!
-    decimals        : BigInt!
-    symbol          : String!
+    id                  : ID!
+    decimals            : BigInt!
+    symbol              : String!
 }
 
 type Wallet @entity {
-    id              : ID!
-    factoryAddress  : Bytes!
-    creationBlock   : BigInt
-    creationDate    : BigInt!
-    pending         : [Transaction!]! 
-    transactions    : [Transaction!]!
-    owners          : [Bytes!]!
-    required        : BigInt!
-    dailyLimit      : BigInt
+    id                  : ID!
+    factoryAddress      : Bytes!
+    creationBlock       : BigInt
+    creationDate        : BigInt!
+    pending             : [Transaction!]! 
+    transactions        : [Transaction!]!
+    owners              : [Bytes!]!
+    required            : BigInt!
+    dailyLimit          : BigInt
+    totalTransactions   : BigInt!
 }
 
 type Transaction @entity {
-    id              : ID!
-    date            : BigInt!
-    block           : BigInt!
-    hash            : Bytes!
-    status          : Status
-    value           : BigInt
-    token           : Token
-    from            : Bytes
-    to              : Bytes
-    type            : Type
-    subType         : SubType
-    executionId     : BigInt
-    wallet          : Wallet! @derivedFrom(field: "transactions")
-    confirmations   : [Confirmation!]
+    id                  : ID!
+    date                : BigInt!
+    block               : BigInt!
+    hash                : Bytes!
+    status              : Status
+    value               : BigInt
+    token               : Token
+    from                : Bytes
+    to                  : Bytes
+    type                : Type
+    subType             : SubType
+    executionId         : BigInt
+    wallet              : Wallet! @derivedFrom(field: "transactions")
+    confirmations       : [Confirmation!]
 }
 
 type Confirmation @entity {
-    id              : ID!
-    date            : BigInt!
-    block           : BigInt!
-    hash            : Bytes!
-    sender          : Bytes!
-    transaction     : Transaction @derivedFrom(field: "confirmations")
+    id                  : ID!
+    date                : BigInt!
+    block               : BigInt!
+    hash                : Bytes!
+    sender              : Bytes!
+    transaction         : Transaction @derivedFrom(field: "confirmations")
 }
 
 enum Type {
