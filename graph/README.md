@@ -71,12 +71,13 @@ $ ./script/deploy.sh [--network mainnet|rinkeby] [--local]
 
 ## Model
 
-Genesis
-Token
-Wallet
-Submission
-Transaction
-Action
+- Genesis
+- Token
+- Wallet
+- Balance
+- Submission
+- Transaction
+- Action
 
 [TODO: graph schema diagram]
 
