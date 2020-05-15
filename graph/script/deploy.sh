@@ -8,10 +8,11 @@ IPFS_NODE_LOCAL=http://localhost:5001/
 
 PROJECT_ID_MAINNET=gjeanmart/multisig 
 PROJECT_ID_RINKEBY=gjeanmart/multisig-rinkeby 
+PROJECT_ID_RINKEBY_GSN_ONLY=gjeanmart/multisig-rinkeby-gsn-only
 
 LOCAL=0
 NETWORK=mainnet
-PROJECT_ID=PROJECT_ID_MAINNET
+PROJECT_ID=$PROJECT_ID_MAINNET
 
 while (( "$#" )); do
   case "$1" in
@@ -51,8 +52,12 @@ fi
 
 if [ $NETWORK = "mainnet" ]; then
     PROJECT_ID=$PROJECT_ID_MAINNET
-else
+fi
+if [ $NETWORK = "rinkeby" ]; then
     PROJECT_ID=$PROJECT_ID_RINKEBY
+fi
+if [ $NETWORK = "rinkeby-gsn-only" ]; then
+    PROJECT_ID=$PROJECT_ID_RINKEBY_GSN_ONLY
 fi
 
 graph deploy --debug --node $GRAPH_NODE --ipfs $IPFS_NODE $PROJECT_ID

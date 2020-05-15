@@ -1,7 +1,6 @@
 type Genesis @entity {
     id                  : ID!
     network             : String!
-    tokens              : [Token!]!
 }
 
 type Token @entity {

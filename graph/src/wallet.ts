@@ -20,6 +20,8 @@ export function handleSubmission(event: SubmissionEvent): void {
         let callResult = multisig.transactions(event.params.transactionId)
 
         let submission = loadOrCreateSubmission(multisigAddr, event.params.transactionId, event)
+        submission.date = event.block.timestamp
+        submission.hash = event.transaction.hash
         submission.executionId = event.params.transactionId
         submission.value = callResult.value1
         submission.destination = callResult.value0
@@ -238,8 +240,6 @@ export function handleOwnerAddition(event: OwnerAddition): void {
         let transaction = loadOrCreateTransaction(multisigAddr, event)
         transaction.type = "ADMIN"
         transaction.subType = "ADD_OWNER"
-        transaction.from = multisigAddr
-        transaction.to = multisigAddr
         transaction.extraBytes1 = event.params.owner
         transaction.save()
     
@@ -263,8 +263,6 @@ export function handleOwnerRemoval(event: OwnerRemoval): void {
         let transaction = loadOrCreateTransaction(multisigAddr, event)
         transaction.type = "ADMIN"
         transaction.subType = "REMOVE_OWNER"
-        transaction.from = multisigAddr
-        transaction.to = multisigAddr
         transaction.extraBytes1 = event.params.owner
         transaction.save()
     
@@ -291,8 +289,6 @@ export function handleDailyLimitChange(event: DailyLimitChange): void {
         let transaction = loadOrCreateTransaction(multisigAddr, event)
         transaction.type = "ADMIN"
         transaction.subType = "CHANGE_DAILY_LIMIT"
-        transaction.from = multisigAddr
-        transaction.to = multisigAddr
         transaction.extraBigInt1 = event.params.dailyLimit 
         transaction.save()
     
@@ -314,8 +310,6 @@ export function handleRequirementChange(event: RequirementChange): void {
         let transaction = loadOrCreateTransaction(multisigAddr, event)
         transaction.type = "ADMIN"
         transaction.subType = "CHANGE_REQUIREMENT"
-        transaction.from = multisigAddr
-        transaction.to = multisigAddr
         transaction.extraBigInt1 = event.params.required 
         transaction.save()
     
@@ -370,11 +364,13 @@ function loadOrCreateTransaction(multisig: Address, event: ethereum.Event): Tran
 
 function loadOrCreateSubmission(multisig: Address, transactionId: BigInt, event: ethereum.Event): Submission {
     let id = crypto.keccak256(concat(multisig, ByteArray.fromI32(transactionId.toI32())))
-    let submission = new Submission(id.toHexString())
-    submission.date = event.block.timestamp
-    submission.hash = event.transaction.hash
 
-    return submission
+    let submission = Submission.load(id.toHexString())
+    if(submission != null) {
+        return submission as Submission
+    } else {
+        return new Submission(id.toHexString())
+    }
 }
 
 function loadOrCreateAction(multisig: Address, transactionId: BigInt, type: string, sender: Address, event: ethereum.Event): Action {
@@ -400,10 +396,10 @@ function loadOrCreateBalance(multisig: Address, token: Address): Balance {
         balance.value = zeroBigInt()
     }
 
-    return <Balance> balance
+    return balance as Balance
 }
 
-function updateBalance(wallet: Wallet|null, balance: Balance): Wallet|null {
+function updateBalance(wallet: Wallet|null, balance: Balance): Wallet {
     if(wallet == null) throw "wallet cannot be null"
 
     let balances = wallet.balances
@@ -413,7 +409,7 @@ function updateBalance(wallet: Wallet|null, balance: Balance): Wallet|null {
         wallet.balances = balances
     }
 
-    return wallet
+    return wallet as Wallet
 }
 
 function addActionToSubmission(submission: Submission, action: Action): Submission {
@@ -423,7 +419,7 @@ function addActionToSubmission(submission: Submission, action: Action): Submissi
     return submission
 }
 
-function pushTransactionIfNotExist(wallet: Wallet|null, transaction: Transaction): Wallet|null {
+function pushTransactionIfNotExist(wallet: Wallet|null, transaction: Transaction): Wallet {
     if(wallet == null) throw "wallet cannot be null"
 
     let transactions = wallet.transactions
@@ -434,5 +430,5 @@ function pushTransactionIfNotExist(wallet: Wallet|null, transaction: Transaction
     }
 
     wallet.totalTransactions = BigInt.fromI32(wallet.transactions.length)
-    return wallet
+    return wallet as Wallet
 }

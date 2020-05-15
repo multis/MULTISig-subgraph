@@ -7,9 +7,6 @@ import { Bytes, Address, dataSource, BigInt, log } from '@graphprotocol/graph-ts
 import { hardcodedTokens } from './hardcodedTokens'
 import { zeroBigInt } from './utils'
 
-declare function require(moduleNames: string[], onLoad: (...args: any[]) => void): void;
-
-
 export function handleContractInstantiation(event: ContractInstantiation): void {
 
   genesis(dataSource.network())
@@ -46,19 +43,14 @@ function genesis(network: string): void {
 
     let genesis = new Genesis("1")
 
-    let tokens: string[] = []
-
     for (let i = 0; i < hardcodedTokens.length; i++) {
       let def = hardcodedTokens[i]
       if(network == def.network) {
         let token = new Token(def.address)
         token.decimals = BigInt.fromI32(def.decimals)
         token.symbol = def.symbol
-  
         token.save()
-        tokens.push(token.id)
 
-        // Start tracking ERC20 token
         if(def.symbol != "ETH") {
           ERC20Contract.create(Address.fromString(token.id))
         }
@@ -67,7 +59,6 @@ function genesis(network: string): void {
     }
 
     genesis.network = network
-    genesis.tokens = tokens
     genesis.save()
   }
 }
