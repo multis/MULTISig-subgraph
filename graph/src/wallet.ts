@@ -4,7 +4,7 @@ import { Execution, Submission as SubmissionEvent, Deposit,
          Confirmation, Revocation } 
          from '../generated/templates/GSNMultiSigWalletWithDailyLimit/GSNMultiSigWalletWithDailyLimit'
 import { Transfer } from '../generated/templates/ERC20/ERC20'
-import { Wallet, Transaction, Submission, Action } from '../generated/schema'
+import { Wallet, Transaction, Submission, Action, Balance } from '../generated/schema'
 import { zeroBigInt, concat } from './utils'
 import { log, Address, crypto, ByteArray, BigInt, ethereum } from '@graphprotocol/graph-ts'
 
@@ -100,26 +100,39 @@ export function handleExecution (event: Execution): void {
 
         let transaction = loadOrCreateTransaction(multisigAddr, event)
         transaction.executionId = event.params.transactionId
-        // doesn't work...
-        // if(callResult.value2.length > 0) {
-        //     transaction.type = "CONTRACT"
-        //     transaction.value = callResult.value1
-        //     transaction.token = "0x0000000000000000000000000000000000000000" // ETH
-        // } 
-        if(callResult.value1.gt(zeroBigInt())) {
-            transaction.from = multisigAddr
-            transaction.to = callResult.value0
+
+        // value > 0 and no data (Value transfer)
+        if(callResult.value1.gt(zeroBigInt()) && callResult.value2.length == 0) {
             transaction.type = "VALUE"
             transaction.value = callResult.value1
             transaction.token = "0x0000000000000000000000000000000000000000" // ETH
+
+            let balance = loadOrCreateBalance(multisigAddr, <Address>Address.fromHexString(transaction.token))
+            balance.value = (balance.value.minus(<BigInt>transaction.value))
+            balance.save()
+            wallet = updateBalance(wallet, balance)
+
+        // value == 0 and data (Contract or ERC20) TODO find a way to differentiate both case (parse data???)
+        } else if(callResult.value1.equals(zeroBigInt()) && callResult.value2.length > 0) {
+            //todo...
+
+        // value > 0 and data (Contract)
+        } else if(callResult.value1.gt(zeroBigInt()) && callResult.value2.length > 0) {
+            transaction.type = "CONTRACT"
+            transaction.value = callResult.value1
+            transaction.token = "0x0000000000000000000000000000000000000000" // ETH
+
+            let balance = loadOrCreateBalance(multisigAddr, <Address>Address.fromHexString(transaction.token))
+            balance.value = (balance.value.minus(<BigInt>transaction.value))
+            balance.save()
+            wallet = updateBalance(wallet, balance)
         }
-        // else if (data.length > 0)
+
         transaction.status = "EXECUTED"
         transaction.submission = submission.id
         transaction.save()
     
         wallet = pushTransactionIfNotExist(wallet, transaction)
-
         wallet.save()
 
     } else {
@@ -136,7 +149,7 @@ export function handleExecutionFailure (event: Execution): void {
         let submission = loadOrCreateSubmission(multisigAddr, event.params.transactionId, event)
         //let action = loadOrCreateAction(multisigAddr, event.params.transactionId, "EXECUTE", /* REQUIRE SENDER (_msgSender()) */, event)
         //action.save()
-        
+
         //submission = addActionToSubmission(submission, action)
         submission.ended = true
         submission.save()
@@ -148,17 +161,39 @@ export function handleExecutionFailure (event: Execution): void {
         transaction.executionId = event.params.transactionId
         transaction.from = multisigAddr
         transaction.to = callResult.value0
-        if(callResult.value1 > zeroBigInt()) {
+
+        // value > 0 and no data (Value transfer)
+        if(callResult.value1.gt(zeroBigInt()) && callResult.value2.length == 0) {
             transaction.type = "VALUE"
             transaction.value = callResult.value1
             transaction.token = "0x0000000000000000000000000000000000000000" // ETH
+
+            let balance = loadOrCreateBalance(multisigAddr, <Address>Address.fromHexString(transaction.token))
+            balance.value = (balance.value.minus(<BigInt>transaction.value))
+            balance.save()
+            wallet = updateBalance(wallet, balance)
+
+        // value == 0 and data (Contract or ERC20) TODO find a way to differentiate both case (parse data???)
+        } else if(callResult.value1.equals(zeroBigInt()) && callResult.value2.length > 0) {
+            //todo...
+
+        // value > 0 and data (Contract)
+        } else if(callResult.value1.gt(zeroBigInt()) && callResult.value2.length > 0) {
+            transaction.type = "CONTRACT"
+            transaction.value = callResult.value1
+            transaction.token = "0x0000000000000000000000000000000000000000" // ETH
+
+            let balance = loadOrCreateBalance(multisigAddr, <Address>Address.fromHexString(transaction.token))
+            balance.value = (balance.value.minus(<BigInt>transaction.value))
+            balance.save()
+            wallet = updateBalance(wallet, balance)
         }
+
         transaction.status = "FAILED"
         transaction.submission = submission.id
         transaction.save()
     
         wallet = pushTransactionIfNotExist(wallet, transaction)
-    
         wallet.save()
 
     } else {
@@ -181,8 +216,12 @@ export function handleDeposit(event: Deposit): void {
         transaction.to = multisigAddr
         transaction.save()
     
+        let balance = loadOrCreateBalance(multisigAddr, <Address>Address.fromHexString(transaction.token))
+        balance.value = (balance.value.plus(<BigInt>transaction.value))
+        balance.save()
+
         wallet = pushTransactionIfNotExist(wallet, transaction)
-    
+        wallet = updateBalance(wallet, balance)
         wallet.save()
 
     } else {
@@ -201,14 +240,13 @@ export function handleOwnerAddition(event: OwnerAddition): void {
         transaction.subType = "ADD_OWNER"
         transaction.from = multisigAddr
         transaction.to = multisigAddr
+        transaction.extraBytes1 = event.params.owner
         transaction.save()
     
-        wallet = pushTransactionIfNotExist(wallet, transaction)
-        
         let owners = wallet.owners
         owners.push(event.params.owner)
         wallet.owners = owners
-    
+        wallet = pushTransactionIfNotExist(wallet, transaction)
         wallet.save()
 
     } else {
@@ -227,10 +265,9 @@ export function handleOwnerRemoval(event: OwnerRemoval): void {
         transaction.subType = "REMOVE_OWNER"
         transaction.from = multisigAddr
         transaction.to = multisigAddr
+        transaction.extraBytes1 = event.params.owner
         transaction.save()
     
-        wallet = pushTransactionIfNotExist(wallet, transaction)
-
         let owners = wallet.owners
         let index = owners.indexOf(event.params.owner, 0)
         if (index > -1) {
@@ -238,7 +275,7 @@ export function handleOwnerRemoval(event: OwnerRemoval): void {
 
         }
         wallet.owners = owners
-    
+        wallet = pushTransactionIfNotExist(wallet, transaction)
         wallet.save()
 
     } else {
@@ -257,11 +294,11 @@ export function handleDailyLimitChange(event: DailyLimitChange): void {
         transaction.subType = "CHANGE_DAILY_LIMIT"
         transaction.from = multisigAddr
         transaction.to = multisigAddr
+        transaction.extraBigInt1 = event.params.dailyLimit 
         transaction.save()
     
         wallet = pushTransactionIfNotExist(wallet, transaction)
         wallet.dailyLimit = event.params.dailyLimit
-    
         wallet.save()
 
     } else {
@@ -280,11 +317,11 @@ export function handleRequirementChange(event: RequirementChange): void {
         transaction.subType = "CHANGE_REQUIREMENT"
         transaction.from = multisigAddr
         transaction.to = multisigAddr
+        transaction.extraBigInt1 = event.params.required 
         transaction.save()
     
         wallet = pushTransactionIfNotExist(wallet, transaction)
         wallet.required = event.params.required
-    
         wallet.save()
 
     } else {
@@ -313,8 +350,12 @@ function handleERC20Transfer2(id: Address, event: Transfer): void {
         transaction.to = event.params.to
         transaction.save()
     
+        let balance = loadOrCreateBalance(multisigAddr, event.address)
+        balance.value = (multisigAddr == event.params.to) ? (balance.value.plus(event.params.value)) : (balance.value.minus(event.params.value))
+        balance.save()
+
         wallet = pushTransactionIfNotExist(wallet, transaction)
-    
+        wallet = updateBalance(wallet, balance)
         wallet.save()
     } 
 }
@@ -347,6 +388,33 @@ function loadOrCreateAction(multisig: Address, transactionId: BigInt, type: stri
     action.sender = sender
 
     return action
+}
+
+function loadOrCreateBalance(multisig: Address, token: Address): Balance {
+    let id = crypto.keccak256(concat(multisig, token))
+
+    let balance = Balance.load(id.toHexString())
+    if(balance == null) {
+        balance = new Balance(id.toHexString())
+        balance.token = token.toHexString()
+        balance.wallet = multisig.toHexString()
+        balance.value = zeroBigInt()
+    }
+
+    return <Balance> balance
+}
+
+function updateBalance(wallet: Wallet|null, balance: Balance): Wallet|null {
+    if(wallet == null) throw "wallet cannot be null"
+
+    let balances = wallet.balances
+
+    if (balances.indexOf(balance.id, 0) == -1) {
+        balances.push(balance.id)
+        wallet.balances = balances
+    }
+
+    return wallet
 }
 
 function addActionToSubmission(submission: Submission, action: Action): Submission {

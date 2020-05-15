@@ -28,6 +28,7 @@ export function handleContractInstantiation(event: ContractInstantiation): void 
   wallet.totalTransactions = zeroBigInt()
   wallet.transactions = []
   wallet.submissions = []
+  wallet.balances = []
   wallet.owners = <Array<Bytes>> owners
   wallet.required = required
   wallet.dailyLimit = dailyLimit

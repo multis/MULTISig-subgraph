@@ -10,6 +10,13 @@ type Token @entity {
     symbol              : String!
 }
 
+type Balance @entity {
+    id                  : ID!
+    token               : Token!
+    value               : BigInt!
+    wallet              : Wallet!
+}
+
 type Wallet @entity {
     id                  : ID!
     date                : BigInt!
@@ -23,6 +30,7 @@ type Wallet @entity {
     required            : BigInt!
     dailyLimit          : BigInt
     totalTransactions   : BigInt!
+    balances            : [Balance!]!
 }
 
 type Transaction @entity {
@@ -40,6 +48,9 @@ type Transaction @entity {
     subType             : TransactionSubType
     submission          : Submission
     wallet              : Wallet! @derivedFrom(field: "transactions")
+    extraBigInt1        : BigInt 
+    extraBytes1         : Bytes 
+    extraString1        : String 
 }
 
 type Submission @entity {
