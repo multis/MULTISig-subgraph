@@ -57,12 +57,12 @@ type Submission @entity {
     id                  : ID!
     date                : BigInt!
     hash                : Bytes!
-    executionId         : BigInt
+    executionId         : BigInt!
 
     ended               : Boolean
-    value               : BigInt
-    destination         : Bytes
-    data                : Bytes
+    value               : BigInt!
+    destination         : Bytes!
+    data                : Bytes!
     actions             : [Action!]
     transaction         : Transaction @derivedFrom(field: "submission")
 }
@@ -71,11 +71,11 @@ type Action @entity {
     id                  : ID!
     date                : BigInt!
     hash                : Bytes!
-    executionId         : BigInt
+    executionId         : BigInt!
 
     type                : ActionsType!
     sender              : Bytes!
-    submission          : Submission @derivedFrom(field: "actions")
+    submission          : Submission! @derivedFrom(field: "actions")
 }
 
 enum TransactionType {
@@ -93,10 +93,10 @@ enum TransactionSubType {
 }
 
 enum ActionsType {
-    SUBMIT
+    #SUBMIT
     CONFIRM,
     REVOKE,
-    EXECUTE
+    #EXECUTE
 }
 
 enum TransactionStatus {
