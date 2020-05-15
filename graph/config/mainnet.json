@@ -2,6 +2,6 @@
   "network": "mainnet",
   "factories": {
     "gsn": {"addr": "0x16154F7e9DE01e6B39dAc3159805e9B1531ee3cf", "birthBlock": 9252472},
-    "gnosis": {"addr": "0x19ba60816abca236baa096105df09260a4791418", "birthBlock": 4744726}
+    "gnosis": {"addr": "0x6e95c8e8557abc08b46f3c347ba06f8dc012763f", "birthBlock": 4744726}
   }
 }

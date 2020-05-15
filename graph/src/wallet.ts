@@ -100,6 +100,8 @@ export function handleExecution (event: Execution): void {
 
         let transaction = loadOrCreateTransaction(multisigAddr, event)
         transaction.executionId = event.params.transactionId
+        transaction.from = multisigAddr
+        transaction.to = callResult.value0
 
         // value > 0 and no data (Value transfer)
         if(callResult.value1.gt(zeroBigInt()) && callResult.value2.length == 0) {
@@ -112,11 +114,7 @@ export function handleExecution (event: Execution): void {
             balance.save()
             wallet = updateBalance(wallet, balance)
 
-        // value == 0 and data (Contract or ERC20) TODO find a way to differentiate both case (parse data???)
-        } else if(callResult.value1.equals(zeroBigInt()) && callResult.value2.length > 0) {
-            //todo...
-
-        // value > 0 and data (Contract)
+        // value > 0 and data (Contract call with value)
         } else if(callResult.value1.gt(zeroBigInt()) && callResult.value2.length > 0) {
             transaction.type = "CONTRACT"
             transaction.value = callResult.value1
@@ -126,6 +124,16 @@ export function handleExecution (event: Execution): void {
             balance.value = (balance.value.minus(<BigInt>transaction.value))
             balance.save()
             wallet = updateBalance(wallet, balance)
+
+        // value == 0 and data (Contract call with no value) - could be ERC20 transfer(from,to,value) => overwritten to VALUE if ERC20 in handleTransfer
+        } else if(callResult.value1.equals(zeroBigInt()) && callResult.value2.length > 0) {
+            transaction.type = "CONTRACT" 
+            transaction.value = zeroBigInt()
+            transaction.token = "0x0000000000000000000000000000000000000000" // ETH
+        
+        // value == 0, no data 
+        } else {
+           // should never happen..
         }
 
         transaction.status = "EXECUTED"
@@ -162,31 +170,23 @@ export function handleExecutionFailure (event: Execution): void {
         transaction.from = multisigAddr
         transaction.to = callResult.value0
 
-        // value > 0 and no data (Value transfer)
         if(callResult.value1.gt(zeroBigInt()) && callResult.value2.length == 0) {
             transaction.type = "VALUE"
             transaction.value = callResult.value1
             transaction.token = "0x0000000000000000000000000000000000000000" // ETH
 
-            let balance = loadOrCreateBalance(multisigAddr, <Address>Address.fromHexString(transaction.token))
-            balance.value = (balance.value.minus(<BigInt>transaction.value))
-            balance.save()
-            wallet = updateBalance(wallet, balance)
-
-        // value == 0 and data (Contract or ERC20) TODO find a way to differentiate both case (parse data???)
-        } else if(callResult.value1.equals(zeroBigInt()) && callResult.value2.length > 0) {
-            //todo...
-
-        // value > 0 and data (Contract)
         } else if(callResult.value1.gt(zeroBigInt()) && callResult.value2.length > 0) {
             transaction.type = "CONTRACT"
             transaction.value = callResult.value1
             transaction.token = "0x0000000000000000000000000000000000000000" // ETH
 
-            let balance = loadOrCreateBalance(multisigAddr, <Address>Address.fromHexString(transaction.token))
-            balance.value = (balance.value.minus(<BigInt>transaction.value))
-            balance.save()
-            wallet = updateBalance(wallet, balance)
+        } else if(callResult.value1.equals(zeroBigInt()) && callResult.value2.length > 0) {
+            transaction.type = "CONTRACT" 
+            transaction.value = zeroBigInt()
+            transaction.token = "0x0000000000000000000000000000000000000000" // ETH
+        
+        } else {
+           // should never happen..
         }
 
         transaction.status = "FAILED"
@@ -272,7 +272,6 @@ export function handleOwnerRemoval(event: OwnerRemoval): void {
         let index = owners.indexOf(event.params.owner, 0)
         if (index > -1) {
             owners = owners.splice(index, 1);
-
         }
         wallet.owners = owners
         wallet = pushTransactionIfNotExist(wallet, transaction)
