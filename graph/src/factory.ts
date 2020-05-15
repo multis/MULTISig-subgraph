@@ -1,4 +1,4 @@
-import {  CreateCall, ContractInstantiation } from '../generated/GSNMultisigFactory/GSNMultisigFactory'
+import { ContractInstantiation } from '../generated/GSNMultisigFactory/GSNMultisigFactory'
 import { GSNMultiSigWalletWithDailyLimit  } from '../generated/templates/GSNMultiSigWalletWithDailyLimit/GSNMultiSigWalletWithDailyLimit'
 import { Wallet, Genesis, Token } from '../generated/schema'
 import { GSNMultiSigWalletWithDailyLimit as GSNMultiSigWalletWithDailyLimitContract,
@@ -21,15 +21,17 @@ export function handleContractInstantiation(event: ContractInstantiation): void 
   let required = multisig.required()
   let dailyLimit = multisig.dailyLimit()
 
+  wallet.date = event.block.timestamp
+  wallet.hash = event.transaction.hash
+
   wallet.factoryAddress = event.transaction.from
-  wallet.creationBlock = event.block.number
-  wallet.creationDate = event.block.timestamp
   wallet.totalTransactions = zeroBigInt()
   wallet.transactions = []
-  wallet.pending = []
+  wallet.submissions = []
   wallet.owners = <Array<Bytes>> owners
   wallet.required = required
   wallet.dailyLimit = dailyLimit
+
   wallet.save()
 
   // Instanciate a new datasource
@@ -39,16 +41,17 @@ export function handleContractInstantiation(event: ContractInstantiation): void 
 
 function genesis(network: string): void {
   
-  if(Genesis.load("1") === null) {
+  if(Genesis.load("1") == null) {
 
     let genesis = new Genesis("1")
+
     let tokens: string[] = []
 
     for (let i = 0; i < hardcodedTokens.length; i++) {
       let def = hardcodedTokens[i]
-      if(dataSource.network() == def.network) {
-        let token = new Token(def.tokenAddress)
-        token.decimals = BigInt.fromI32(def.tokenDecimals)
+      if(network == def.network) {
+        let token = new Token(def.address)
+        token.decimals = BigInt.fromI32(def.decimals)
         token.symbol = def.symbol
   
         token.save()
@@ -62,6 +65,7 @@ function genesis(network: string): void {
       }
     }
 
+    genesis.network = network
     genesis.tokens = tokens
     genesis.save()
   }

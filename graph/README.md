@@ -33,23 +33,19 @@ cd ./ethereum-multisig-transaction-history/graph
 1. Build
 
 ```
-$ .script/build.sh --reset --code-gen --network mainnet|rinkeby
+$ .script/build.sh [--reset] [--code-gen] [--network mainnet|rinkeby]
 ```
 
-- `--reset || -r` deletes the build and generated code folders
-- `--code-gen || -c` generate code 
-- `--network || -n` select a target network (mainnet or rinkeby)
+- `--reset || -r` deletes the build and generated code folders [optional]
+- `--code-gen || -c` generate code [optional]
+- `--network || -n` select a target network (mainnet or rinkeby) [optional, default: mainnet]
 
 2. Start a local node
 
 ```
 $ docker-compose -f ./node/docker-compose.yml up
 $ graph create --node http://localhost:8020/ gjeanmart/multisig
-$ graph deploy \
-    --debug \
-    --node http://localhost:8020/ \
-    --ipfs http://localhost:5001/ \
-    gjeanmart/multisig
+$ ./script/deploy.sh [--network mainnet|rinkeby] --local
 ```
 
 can't really work without an archive node at disposition. 
@@ -66,17 +62,30 @@ $ graph auth https://api.thegraph.com/deploy/ <token>
 2. deploy
 
 ```
-$ ./script/deploy.sh --network mainnet|rinkeby --local
+$ ./script/deploy.sh [--network mainnet|rinkeby] [--local]
 ```
 
-- `--network || -n` select a target network (mainnet or rinkeby)
-- `--local | -l`  deploy on a local node rather than TheGraph node (default)
+- `--network || -n` select a target network (mainnet or rinkeby) [optional, default: mainnet]
+- `--local | -l`  deploy on a local node instead of a TheGraph node (https://api.thegraph.com/deploy/) [optional]
+
+
+## Model
+
+Genesis
+Token
+Wallet
+Submission
+Transaction
+Action
+
+[TODO: graph schema diagram]
+
 
 ## Queries
 
 ### Get all wallets
 
-```
+```graphql
 {
   wallets(first: 10) {
     id
@@ -89,42 +98,89 @@ $ ./script/deploy.sh --network mainnet|rinkeby --local
 
 ```
 
-### Get wallet details
+### Transaction History
 
-```
+```graphql
 {
-  wallet(id: "0x09e666e01d25b409a94da56869b5449bc2b352a9") {
+  wallet(id: "0xed6a3f3d846ba7733d0a9a4d4a52f23404b4b394") {
     id
-    factoryAddress
-    creationBlock
-    creationDate
-    owners
-    required
-    dailyLimit
-    pending {
-      id
-    }
-    transactions(orderBy: block, orderDirection: desc) {
-      id
-      status
-      block
-      date
+    totalTransactions
+    transactions(where: {type: VALUE}, orderBy: date, orderDirection: desc) {
       hash
+      date
+      status
       value
       token {
-        id
         symbol
+        id
         decimals
       }
       from
       to
       type
       subType
-      wallet {
-        id
-      }
     }
   }
 }
 
+```
+
+### Get wallet details
+
+```graphql
+{
+  wallet(id: "0xed6a3f3d846ba7733d0a9a4d4a52f23404b4b394") {
+    id
+    factoryAddress
+    date
+    hash
+    owners
+    required
+    dailyLimit
+}
+
+```
+
+### Pending submissions
+
+```graphql
+{
+  wallet(id: "0xed6a3f3d846ba7733d0a9a4d4a52f23404b4b394") {
+    id
+    submissions(where: {ended: false}, orderBy: date, orderDirection: desc) {
+      id
+      date
+      executionId
+      value
+      destination
+      data
+      actions {
+        id
+        date
+        type
+        sender
+      }
+    }
+  }
+}
+```
+
+### GET ADMIN HISTORY
+
+```graphql
+{
+  wallet(id: "0xed6a3f3d846ba7733d0a9a4d4a52f23404b4b394") {
+    id
+    factoryAddress
+    owners
+    dailyLimit
+    required
+    transactions(where: {type: ADMIN}, orderBy: block, orderDirection: desc) {
+      hash
+      date
+      type
+      subType
+    }
+  }
+}
 ```

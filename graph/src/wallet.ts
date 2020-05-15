@@ -1,23 +1,41 @@
-import { Execution, Submission, Deposit, 
+import { Execution, Submission as SubmissionEvent, Deposit, 
          OwnerAddition, OwnerRemoval, DailyLimitChange, 
          RequirementChange, GSNMultiSigWalletWithDailyLimit, 
          Confirmation, Revocation } 
          from '../generated/templates/GSNMultiSigWalletWithDailyLimit/GSNMultiSigWalletWithDailyLimit'
 import { Transfer } from '../generated/templates/ERC20/ERC20'
-import { Wallet, Transaction } from '../generated/schema'
+import { Wallet, Transaction, Submission, Action } from '../generated/schema'
 import { zeroBigInt, concat } from './utils'
-import { log, Address, crypto, Bytes, ByteArray, BigInt } from '@graphprotocol/graph-ts'
+import { log, Address, crypto, ByteArray, BigInt, ethereum } from '@graphprotocol/graph-ts'
 
 
 
-export function handleSubmission(event: Submission): void {
+export function handleSubmission(event: SubmissionEvent): void {
 
     let multisigAddr = event.address
     let wallet = Wallet.load(multisigAddr.toHex())
 
     if(wallet != null) {
-        //let multisig = GSNMultiSigWalletWithDailyLimit.bind(multisigAddr)
-        //let callResult = multisig.transactions(event.params.transactionId)
+        let multisig = GSNMultiSigWalletWithDailyLimit.bind(multisigAddr)
+        let callResult = multisig.transactions(event.params.transactionId)
+
+        let submission = loadOrCreateSubmission(multisigAddr, event.params.transactionId, event)
+        submission.executionId = event.params.transactionId
+        submission.value = callResult.value1
+        submission.destination = callResult.value0
+        submission.data = callResult.value2
+
+        //let action = loadOrCreateAction(multisigAddr, event.params.transactionId, "SUBMIT", /* REQUIRE SENDER (_msgSender()) */, event)
+        //action.save()
+
+        //submission = addActionToSubmission(submission, action)
+        submission.save()
+    
+        let submissions = wallet.submissions
+        submissions.push(submission.id)
+        wallet.submissions = submissions
+        
+        wallet.save()
 
     } else {
         log.warning("handleSubmission::Wallet {} not found", [multisigAddr.toHexString()])
@@ -30,8 +48,13 @@ export function handleConfirmation(event: Confirmation): void {
     let wallet = Wallet.load(multisigAddr.toHex())
 
     if(wallet != null) {
-        //let multisig = GSNMultiSigWalletWithDailyLimit.bind(multisigAddr)
-        //let callResult = multisig.transactions(event.params.transactionId)
+        let submission = loadOrCreateSubmission(multisigAddr, event.params.transactionId, event)
+
+        let action = loadOrCreateAction(multisigAddr, event.params.transactionId, "CONFIRM", event.params.sender, event)
+        action.save()
+
+        submission = addActionToSubmission(submission, action)
+        submission.save()
 
     } else {
         log.warning("handleConfirmation::Wallet {} not found", [multisigAddr.toHexString()])
@@ -44,8 +67,14 @@ export function handleRevocation(event: Revocation): void {
     let wallet = Wallet.load(multisigAddr.toHex())
 
     if(wallet != null) {
-        //let multisig = GSNMultiSigWalletWithDailyLimit.bind(multisigAddr)
-        //let callResult = multisig.transactions(event.params.transactionId)
+        let submission = loadOrCreateSubmission(multisigAddr, event.params.transactionId, event)
+
+        let action = loadOrCreateAction(multisigAddr, event.params.transactionId, "REVOKE", event.params.sender, event)
+        action.save()
+
+        submission = addActionToSubmission(submission, action)
+        submission.ended = true
+        submission.save()
 
     } else {
         log.warning("handleRevocation::Wallet {} not found", [multisigAddr.toHexString()])
@@ -58,26 +87,35 @@ export function handleExecution (event: Execution): void {
     let wallet = Wallet.load(multisigAddr.toHex())
 
     if(wallet != null) {
+        let submission = loadOrCreateSubmission(multisigAddr, event.params.transactionId, event)
+        //let action = loadOrCreateAction(multisigAddr, event.params.transactionId, "EXECUTE", /* REQUIRE SENDER (_msgSender()) */, event)
+        //action.save()
+
+        //submission = addActionToSubmission(submission, action)
+        submission.ended = true
+        submission.save()
+
         let multisig = GSNMultiSigWalletWithDailyLimit.bind(multisigAddr)
         let callResult = multisig.transactions(event.params.transactionId)
 
-        let transaction = loadOrCreateTransaction(multisigAddr, event.transaction.hash)
-        transaction.block = event.block.number
-        transaction.date = event.block.timestamp
-        transaction.hash = event.transaction.hash
+        let transaction = loadOrCreateTransaction(multisigAddr, event)
         transaction.executionId = event.params.transactionId
-        transaction.from = multisigAddr
-        transaction.to = callResult.value0
-        if(callResult.value2.length > 0) {
-            transaction.type = "CONTRACT"
-            transaction.value = callResult.value1
-            transaction.token = "0x0000000000000000000000000000000000000000" // ETH
-        } else if(callResult.value1 > zeroBigInt()) {
+        // doesn't work...
+        // if(callResult.value2.length > 0) {
+        //     transaction.type = "CONTRACT"
+        //     transaction.value = callResult.value1
+        //     transaction.token = "0x0000000000000000000000000000000000000000" // ETH
+        // } 
+        if(callResult.value1.gt(zeroBigInt())) {
+            transaction.from = multisigAddr
+            transaction.to = callResult.value0
             transaction.type = "VALUE"
             transaction.value = callResult.value1
             transaction.token = "0x0000000000000000000000000000000000000000" // ETH
         }
+        // else if (data.length > 0)
         transaction.status = "EXECUTED"
+        transaction.submission = submission.id
         transaction.save()
     
         wallet = pushTransactionIfNotExist(wallet, transaction)
@@ -95,13 +133,18 @@ export function handleExecutionFailure (event: Execution): void {
     let wallet = Wallet.load(multisigAddr.toHex())
 
     if(wallet != null) {
+        let submission = loadOrCreateSubmission(multisigAddr, event.params.transactionId, event)
+        //let action = loadOrCreateAction(multisigAddr, event.params.transactionId, "EXECUTE", /* REQUIRE SENDER (_msgSender()) */, event)
+        //action.save()
+        
+        //submission = addActionToSubmission(submission, action)
+        submission.ended = true
+        submission.save()
+
         let multisig = GSNMultiSigWalletWithDailyLimit.bind(multisigAddr)
         let callResult = multisig.transactions(event.params.transactionId)
 
-        let transaction = loadOrCreateTransaction(multisigAddr, event.transaction.hash)
-        transaction.block = event.block.number
-        transaction.date = event.block.timestamp
-        transaction.hash = event.transaction.hash
+        let transaction = loadOrCreateTransaction(multisigAddr, event)
         transaction.executionId = event.params.transactionId
         transaction.from = multisigAddr
         transaction.to = callResult.value0
@@ -110,7 +153,8 @@ export function handleExecutionFailure (event: Execution): void {
             transaction.value = callResult.value1
             transaction.token = "0x0000000000000000000000000000000000000000" // ETH
         }
-        transaction.status = "ERROR"
+        transaction.status = "FAILED"
+        transaction.submission = submission.id
         transaction.save()
     
         wallet = pushTransactionIfNotExist(wallet, transaction)
@@ -128,10 +172,7 @@ export function handleDeposit(event: Deposit): void {
     let wallet = Wallet.load(multisigAddr.toHex())
 
     if(wallet != null) {
-        let transaction = loadOrCreateTransaction(multisigAddr, event.transaction.hash)
-        transaction.block = event.block.number
-        transaction.date = event.block.timestamp
-        transaction.hash = event.transaction.hash
+        let transaction = loadOrCreateTransaction(multisigAddr, event)
         transaction.type = "VALUE"
         transaction.status = "EXECUTED"
         transaction.value = event.params.value
@@ -155,10 +196,7 @@ export function handleOwnerAddition(event: OwnerAddition): void {
     let wallet = Wallet.load(multisigAddr.toHex())
 
     if(wallet != null) {
-        let transaction = loadOrCreateTransaction(multisigAddr, event.transaction.hash)
-        transaction.block = event.block.number
-        transaction.date = event.block.timestamp
-        transaction.hash = event.transaction.hash
+        let transaction = loadOrCreateTransaction(multisigAddr, event)
         transaction.type = "ADMIN"
         transaction.subType = "ADD_OWNER"
         transaction.from = multisigAddr
@@ -177,16 +215,14 @@ export function handleOwnerAddition(event: OwnerAddition): void {
         log.warning("handleOwnerAddition::Wallet {} not found", [multisigAddr.toHexString()])
     }
 }
+
 export function handleOwnerRemoval(event: OwnerRemoval): void {
 
     let multisigAddr = event.address
     let wallet = Wallet.load(multisigAddr.toHex())
 
     if(wallet != null) {
-        let transaction = loadOrCreateTransaction(multisigAddr, event.transaction.hash)
-        transaction.block = event.block.number
-        transaction.date = event.block.timestamp
-        transaction.hash = event.transaction.hash
+        let transaction = loadOrCreateTransaction(multisigAddr, event)
         transaction.type = "ADMIN"
         transaction.subType = "REMOVE_OWNER"
         transaction.from = multisigAddr
@@ -209,16 +245,14 @@ export function handleOwnerRemoval(event: OwnerRemoval): void {
         log.warning("handleOwnerRemoval::Wallet {} not found", [multisigAddr.toHexString()])
     }
 }
+
 export function handleDailyLimitChange(event: DailyLimitChange): void { 
 
     let multisigAddr = event.address
     let wallet = Wallet.load(multisigAddr.toHex())
 
     if(wallet != null) {
-        let transaction = loadOrCreateTransaction(multisigAddr, event.transaction.hash)
-        transaction.block = event.block.number
-        transaction.date = event.block.timestamp
-        transaction.hash = event.transaction.hash
+        let transaction = loadOrCreateTransaction(multisigAddr, event)
         transaction.type = "ADMIN"
         transaction.subType = "CHANGE_DAILY_LIMIT"
         transaction.from = multisigAddr
@@ -234,16 +268,14 @@ export function handleDailyLimitChange(event: DailyLimitChange): void {
         log.warning("handleDailyLimitChange::Wallet {} not found", [multisigAddr.toHexString()])
     }
 }
+
 export function handleRequirementChange(event: RequirementChange): void {
 
     let multisigAddr = event.address
     let wallet = Wallet.load(multisigAddr.toHex())
 
     if(wallet != null) {
-        let transaction = loadOrCreateTransaction(multisigAddr, event.transaction.hash)
-        transaction.block = event.block.number
-        transaction.date = event.block.timestamp
-        transaction.hash = event.transaction.hash
+        let transaction = loadOrCreateTransaction(multisigAddr, event)
         transaction.type = "ADMIN"
         transaction.subType = "CHANGE_REQUIREMENT"
         transaction.from = multisigAddr
@@ -271,15 +303,12 @@ function handleERC20Transfer2(id: Address, event: Transfer): void {
     let wallet = Wallet.load(multisigAddr.toHex())
 
     if(wallet != null) {
-        let transaction = loadOrCreateTransaction(multisigAddr, event.transaction.hash)
-        transaction.block = event.block.number
-        transaction.date = event.block.timestamp
-        transaction.hash = event.transaction.hash
+        let transaction = loadOrCreateTransaction(multisigAddr, event)
         transaction.type = "VALUE"
         transaction.subType = "ERC20"
         transaction.status = "EXECUTED"
         transaction.value = event.params.value
-        transaction.token = event.address.toHex()
+        transaction.token = event.address.toHexString()
         transaction.from = event.params.from
         transaction.to = event.params.to
         transaction.save()
@@ -290,18 +319,41 @@ function handleERC20Transfer2(id: Address, event: Transfer): void {
     } 
 }
 
-function loadOrCreateTransaction(multisig: Address, txHash: Bytes): Transaction {
-    let id = crypto.keccak256(concat(multisig, txHash)).toHex()
+function loadOrCreateTransaction(multisig: Address, event: ethereum.Event): Transaction {
+    let id = crypto.keccak256(concat(multisig, event.transaction.hash))
+    let transaction = new Transaction(id.toHexString())
+    transaction.date = event.block.timestamp
+    transaction.hash = event.transaction.hash
 
-    // it is more efficient to create than load (https://github.com/graphprotocol/support/wiki/common-patterns#updating-entities-in-the-store-efficiently)
-    // let transaction = Transaction.load(id)
-    // if(transaction == null) {
-    //     return new Transaction(id.toString())
-    // } else {
-    //     return <Transaction> transaction
-    // }
+    return transaction
+}
 
-    return new Transaction(id.toString())
+function loadOrCreateSubmission(multisig: Address, transactionId: BigInt, event: ethereum.Event): Submission {
+    let id = crypto.keccak256(concat(multisig, ByteArray.fromI32(transactionId.toI32())))
+    let submission = new Submission(id.toHexString())
+    submission.date = event.block.timestamp
+    submission.hash = event.transaction.hash
+
+    return submission
+}
+
+function loadOrCreateAction(multisig: Address, transactionId: BigInt, type: string, sender: Address, event: ethereum.Event): Action {
+    let id = crypto.keccak256(concat(concat(multisig, event.transaction.hash), ByteArray.fromI32(transactionId.toI32())))
+    let action = new Action(id.toHexString())
+    action.date = event.block.timestamp
+    action.hash = event.transaction.hash
+    action.executionId = transactionId
+    action.type = type
+    action.sender = sender
+
+    return action
+}
+
+function addActionToSubmission(submission: Submission, action: Action): Submission {
+    let actions = (submission.actions != null) ? submission.actions : <string[]>[]
+    actions.push(action.id)
+    submission.actions = actions
+    return submission
 }
 
 function pushTransactionIfNotExist(wallet: Wallet|null, transaction: Transaction): Wallet|null {

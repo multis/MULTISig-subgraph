@@ -1,5 +1,6 @@
 type Genesis @entity {
     id                  : ID!
+    network             : String!
     tokens              : [Token!]!
 }
 
@@ -11,10 +12,12 @@ type Token @entity {
 
 type Wallet @entity {
     id                  : ID!
+    date                : BigInt!
+    hash                : Bytes!
+
+    # isMultis: Boolean
     factoryAddress      : Bytes!
-    creationBlock       : BigInt
-    creationDate        : BigInt!
-    pending             : [Transaction!]! 
+    submissions         : [Submission!]! 
     transactions        : [Transaction!]!
     owners              : [Bytes!]!
     required            : BigInt!
@@ -25,45 +28,68 @@ type Wallet @entity {
 type Transaction @entity {
     id                  : ID!
     date                : BigInt!
-    block               : BigInt!
     hash                : Bytes!
-    status              : Status
+    executionId         : BigInt
+    
+    status              : TransactionStatus
     value               : BigInt
     token               : Token
     from                : Bytes
     to                  : Bytes
-    type                : Type
-    subType             : SubType
-    executionId         : BigInt
+    type                : TransactionType
+    subType             : TransactionSubType
+    submission          : Submission
     wallet              : Wallet! @derivedFrom(field: "transactions")
-    confirmations       : [Confirmation!]
 }
 
-type Confirmation @entity {
+type Submission @entity {
     id                  : ID!
     date                : BigInt!
-    block               : BigInt!
     hash                : Bytes!
-    sender              : Bytes!
-    transaction         : Transaction @derivedFrom(field: "confirmations")
+    executionId         : BigInt
+
+    ended               : Boolean
+    value               : BigInt
+    destination         : Bytes
+    data                : Bytes
+    actions             : [Action!]
+    transaction         : Transaction @derivedFrom(field: "submission")
 }
 
-enum Type {
+type Action @entity {
+    id                  : ID!
+    date                : BigInt!
+    hash                : Bytes!
+    executionId         : BigInt
+
+    type                : ActionsType!
+    sender              : Bytes!
+    submission          : Submission @derivedFrom(field: "actions")
+}
+
+enum TransactionType {
     VALUE,
     CONTRACT,
     ADMIN
 }
 
-enum SubType {
+enum TransactionSubType {
     ADD_OWNER,
     REMOVE_OWNER,
     CHANGE_REQUIREMENT,
     CHANGE_DAILY_LIMIT,
     ERC20
 }
-enum Status {
+
+enum ActionsType {
+    SUBMIT
+    CONFIRM,
+    REVOKE,
+    EXECUTE
+}
+
+enum TransactionStatus {
     EXECUTED,
-    PENDING,
-    ERROR
+    FAILED
 }
 
