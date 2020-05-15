@@ -83,16 +83,19 @@ Action
 
 ## Queries
 
-### Get all wallets
+### Balance
 
 ```graphql
 {
-  wallets(first: 10) {
+  wallet(id: "0xed6a3f3d846ba7733d0a9a4d4a52f23404b4b394") {
     id
-    factoryAddress
-    creationBlock
-    creationDate
-    owners
+    balances {
+      token {
+        symbol
+        id
+      }
+      value
+    }
   }
 }
 
@@ -165,22 +168,29 @@ Action
 }
 ```
 
-### GET ADMIN HISTORY
+### Admin history
 
 ```graphql
 {
   wallet(id: "0xed6a3f3d846ba7733d0a9a4d4a52f23404b4b394") {
     id
-    factoryAddress
-    owners
-    dailyLimit
-    required
-    transactions(where: {type: ADMIN}, orderBy: block, orderDirection: desc) {
+    totalTransactions
+    transactions(where: {type: VALUE}, orderBy: date, orderDirection: desc) {
       hash
       date
+      status
+      value
+      token {
+        symbol
+        id
+        decimals
+      }
+      from
+      to
       type
       subType
     }
   }
 }
+
 ```
