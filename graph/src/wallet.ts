@@ -3,8 +3,8 @@ import { Execution, Submission as SubmissionEvent, Deposit,
          RequirementChange, GSNMultiSigWalletWithDailyLimit, 
          Confirmation, Revocation } 
          from '../generated/templates/GSNMultiSigWalletWithDailyLimit/GSNMultiSigWalletWithDailyLimit'
-import { Transfer } from '../generated/templates/ERC20/ERC20'
-import { Wallet, Transaction, Submission, Action, Balance } from '../generated/schema'
+import { Transfer, Approval, TransferFromCall } from '../generated/templates/ERC20/ERC20'
+import { Wallet, Transaction, Submission, Action, Balance, Allowance } from '../generated/schema'
 import { zeroBigInt, concat } from './utils'
 import { log, Address, crypto, ByteArray, BigInt, ethereum } from '@graphprotocol/graph-ts'
 
@@ -127,11 +127,16 @@ export function handleExecution (event: Execution): void {
             balance.save()
             wallet = updateBalance(wallet, balance)
 
-        // value == 0 and data (Contract call with no value) - could be ERC20 transfer(from,to,value) => overwritten to VALUE if ERC20 in handleTransfer
+        // value == 0 and data (Contract call with no value)
         } else if(callResult.value1.equals(zeroBigInt()) && callResult.value2.length > 0) {
-            transaction.type = "CONTRACT" 
-            transaction.value = zeroBigInt()
-            transaction.token = "0x0000000000000000000000000000000000000000" // ETH
+            let tx = Transaction.load(transaction.id)
+
+            // Bypass this when the data is an ERC20 transfer (VALUE) or wallet config tx (ADMIN)
+            if(tx.type != "VALUE" && tx.type != "ADMIN") { 
+                transaction.type = "CONTRACT" 
+                transaction.value = zeroBigInt()
+                transaction.token = "0x0000000000000000000000000000000000000000" // ETH
+            }
         
         // value == 0, no data 
         } else {
@@ -322,9 +327,34 @@ export function handleRequirementChange(event: RequirementChange): void {
     }
 }
 
+export function handleERC20Approval(event: Approval): void {
+
+    let multisigAddr = event.params.owner
+    let wallet = Wallet.load(multisigAddr.toHex())
+
+    if(wallet != null) {
+
+        let transaction = loadOrCreateTransaction(multisigAddr, event)
+        transaction.type = "ADMIN"
+        transaction.subType = "ALLOWANCE"
+        transaction.extraBigInt1 = event.params.value 
+        transaction.extraBytes1 = event.address
+        transaction.extraBytes2 = event.params.spender 
+        transaction.save()
+    
+        let allowance = loadOrCreateAllowance(multisigAddr, event.address, event.params.spender)
+        allowance.value = allowance.value.plus(event.params.value)
+        allowance.save()
+    
+        wallet = pushTransactionIfNotExist(wallet, transaction)
+        wallet = updateAllowance(wallet, allowance)
+        wallet.save()
+    }
+}
+
 export function handleERC20Transfer(event: Transfer): void {
-    handleERC20Transfer2(event.params.from, event)
-    handleERC20Transfer2(event.params.to, event)
+    handleERC20Transfer2(event.params.from, event)  // send
+    handleERC20Transfer2(event.params.to, event)    // receive
 }
 
 function handleERC20Transfer2(id: Address, event: Transfer): void {
@@ -333,7 +363,19 @@ function handleERC20Transfer2(id: Address, event: Transfer): void {
     let wallet = Wallet.load(multisigAddr.toHex())
 
     if(wallet != null) {
+
         let transaction = loadOrCreateTransaction(multisigAddr, event)
+        
+        if(event.transaction.to == event.address) { // direct transfer
+            let allowance = loadOrCreateAllowance(multisigAddr, event.address, event.transaction.from)
+            allowance.value = allowance.value.minus(event.params.value)
+            allowance.save()
+        
+            wallet = updateAllowance(wallet, allowance)  
+
+            transaction.extraString1 = "DIRECT_TRANSFER"
+        }
+        
         transaction.type = "VALUE"
         transaction.subType = "ERC20"
         transaction.status = "EXECUTED"
@@ -399,6 +441,21 @@ function loadOrCreateBalance(multisig: Address, token: Address): Balance {
     return balance as Balance
 }
 
+function loadOrCreateAllowance(multisig: Address, token: Address, spender: Address): Allowance {
+    let id = crypto.keccak256(concat(concat(multisig, token), spender))
+
+    let allowance = Allowance.load(id.toHexString())
+    if(allowance == null) {
+        allowance = new Allowance(id.toHexString())
+        allowance.spender = spender
+        allowance.token = token.toHexString()
+        allowance.wallet = multisig.toHexString()
+        allowance.value = zeroBigInt()
+    }
+
+    return allowance as Allowance
+}
+
 function updateBalance(wallet: Wallet|null, balance: Balance): Wallet {
     if(wallet == null) throw "wallet cannot be null"
 
@@ -407,6 +464,19 @@ function updateBalance(wallet: Wallet|null, balance: Balance): Wallet {
     if (balances.indexOf(balance.id, 0) == -1) {
         balances.push(balance.id)
         wallet.balances = balances
+    }
+
+    return wallet as Wallet
+}
+
+function updateAllowance(wallet: Wallet|null, allowance: Allowance): Wallet {
+    if(wallet == null) throw "wallet cannot be null"
+
+    let allowances = wallet.allowances
+
+    if (allowances.indexOf(allowance.id, 0) == -1) {
+        allowances.push(allowance.id)
+        wallet.allowances = allowances
     }
 
     return wallet as Wallet

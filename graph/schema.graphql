@@ -16,20 +16,28 @@ type Balance @entity {
     wallet              : Wallet!
 }
 
+type Allowance @entity {
+    id                  : ID!
+    spender             : Bytes!
+    token               : Token!
+    value               : BigInt!
+    wallet              : Wallet!
+}
+
 type Wallet @entity {
     id                  : ID!
     date                : BigInt!
     hash                : Bytes!
 
-    # isMultis: Boolean
     factoryAddress      : Bytes!
+    balances            : [Balance!]!
+    allowances          : [Allowance!]!
     submissions         : [Submission!]! 
     transactions        : [Transaction!]!
     owners              : [Bytes!]!
     required            : BigInt!
     dailyLimit          : BigInt
     totalTransactions   : BigInt!
-    balances            : [Balance!]!
 }
 
 type Transaction @entity {
@@ -48,8 +56,11 @@ type Transaction @entity {
     submission          : Submission
     wallet              : Wallet! @derivedFrom(field: "transactions")
     extraBigInt1        : BigInt 
+    extraBigInt2        : BigInt 
     extraBytes1         : Bytes 
+    extraBytes2         : Bytes 
     extraString1        : String 
+    extraString2        : String 
 }
 
 type Submission @entity {
@@ -88,7 +99,8 @@ enum TransactionSubType {
     REMOVE_OWNER,
     CHANGE_REQUIREMENT,
     CHANGE_DAILY_LIMIT,
-    ERC20
+    ERC20,
+    ALLOWANCE
 }
 
 enum ActionsType {

@@ -373,5 +373,9 @@ export class AsToken {
     {  symbol: 'CDT',
       address: '0xf2ea37930a2d98f41f80a6c92aca8f86aa29288a',
       decimals: 18,
+      network: 'rinkeby' },
+    { symbol: 'GRG',
+      address: '0x00f9f94af32817597fc95ee18f9879613fbbec74',
+      decimals: 18,
       network: 'rinkeby' }
 ]

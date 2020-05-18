@@ -75,6 +75,7 @@ $ ./script/deploy.sh [--network mainnet|rinkeby] [--local]
 - Token
 - Wallet
 - Balance
+- Allowance
 - Submission
 - Transaction
 - Action

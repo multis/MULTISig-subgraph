@@ -111,4 +111,6 @@ templates:
       eventHandlers:
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleERC20Transfer
+        - event: Approval(indexed address,indexed address,uint256)
+          handler: handleERC20Approval
       file: ./src/wallet.ts
