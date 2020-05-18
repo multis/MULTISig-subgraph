@@ -366,7 +366,7 @@ function handleERC20Transfer2(id: Address, event: Transfer): void {
 
         let transaction = loadOrCreateTransaction(multisigAddr, event)
         
-        if(event.transaction.to == event.address) { // direct transfer
+        if(event.params.from == multisigAddr && event.transaction.to == event.address) { // direct transfer
             let allowance = loadOrCreateAllowance(multisigAddr, event.address, event.transaction.from)
             allowance.value = allowance.value.minus(event.params.value)
             allowance.save()
