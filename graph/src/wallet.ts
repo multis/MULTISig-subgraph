@@ -100,7 +100,7 @@ export function handleExecutionFailure (event: Execution): void {
         wallet.save()
 
     } else {
-        log.warning("handleExecution::Wallet {} not found", [multisigAddr.toHexString()])
+        log.warning("handleExecutionFailure::Wallet {} not found", [multisigAddr.toHexString()])
     }
 }
 
