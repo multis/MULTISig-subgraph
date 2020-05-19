@@ -159,6 +159,11 @@ function handleTransaction (multisigAddr: Address, wallet: Wallet, executionId: 
             transaction.value = zeroBigInt()
             transaction.token = "0x0000000000000000000000000000000000000000" // ETH
         }
+        // if ERC20 transfer (VALUE), reset from and to
+        if(tx.type == "VALUE") {
+            transaction.from = tx.from
+            transaction.to = tx.to
+        }
     
     // value == 0, no data 
     } else {
