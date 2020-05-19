@@ -36,9 +36,9 @@ cd ./ethereum-multisig-transaction-history/graph
 $ .script/build.sh [--reset] [--code-gen] [--network mainnet|rinkeby]
 ```
 
-- `--reset | -r` deletes the build and generated code folders [optional]
-- `--code-gen | -c` (re)generate code from schema [optional]
-- `--network | -n` select a target network (mainnet or rinkeby) [optional, default: mainnet]
+- `--reset -r` deletes the build and generated code folders [optional]
+- `--code-gen -c` (re)generate code from schema [optional]
+- `--network -n` select a target network (mainnet or rinkeby) [optional, default: mainnet]
 
 2. Start a local node
 
@@ -65,8 +65,8 @@ $ graph auth https://api.thegraph.com/deploy/ <token>
 $ ./script/deploy.sh [--network mainnet|rinkeby] [--local]
 ```
 
-- `--network | -n` select a target network (mainnet or rinkeby) [optional, default: mainnet]
-- `--local | -l`  deploy on a local node instead of a TheGraph node (https://api.thegraph.com/deploy/) [optional]
+- `--network -n` select a target network (mainnet or rinkeby) [optional, default: mainnet]
+- `--local -l`  deploy on a local node instead of a TheGraph node (https://api.thegraph.com/deploy/) [optional]
 
 
 ## Model

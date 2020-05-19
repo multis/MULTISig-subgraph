@@ -104,14 +104,13 @@ enum TransactionSubType {
 }
 
 enum ActionsType {
-    #SUBMIT
     CONFIRM,
     REVOKE,
-    #EXECUTE
 }
 
 enum TransactionStatus {
     EXECUTED,
-    FAILED
+    FAILED,
+    CANCELED
 }
 
