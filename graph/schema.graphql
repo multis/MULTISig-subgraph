@@ -61,6 +61,7 @@ type Transaction @entity {
     extraBytes2         : Bytes 
     extraString1        : String 
     extraString2        : String 
+    linkedTransactions  : [Transaction!]
 }
 
 type Submission @entity {

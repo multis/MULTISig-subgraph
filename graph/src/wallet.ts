@@ -119,62 +119,78 @@ function handleTransaction (multisigAddr: Address, wallet: Wallet, executionId: 
     let callResult = multisig.transactions(executionId)
 
     let transaction = loadOrCreateTransaction(multisigAddr, event)
-    transaction.executionId = executionId
-    transaction.from = multisigAddr
-    transaction.to = callResult.value0
 
-    // value > 0 and no data (Value transfer)
-    if(callResult.value1.gt(zeroBigInt()) && callResult.value2.length == 0) {
-        transaction.type = "VALUE"
-        transaction.value = callResult.value1
-        transaction.token = "0x0000000000000000000000000000000000000000" // ETH
-
-        if(status == "EXECUTED") { // updated balance only if executed
-            let balance = loadOrCreateBalance(multisigAddr, <Address>Address.fromHexString(transaction.token))
-            balance.value = (balance.value.minus(<BigInt>transaction.value))
-            balance.save()
-            wallet = updateBalance(wallet, balance)
+    let transactions = [] as Transaction[]
+    transactions.push(transaction)
+    if(transaction.linkedTransactions != null) {
+        let linked = transaction.linkedTransactions as string[]
+        for(let i = 0; i < linked.length; i++) {
+            let id = linked[i]
+            transactions.push(<Transaction>Transaction.load(id))
         }
-
-    // value > 0 and data (Contract call with value)
-    } else if(callResult.value1.gt(zeroBigInt()) && callResult.value2.length > 0) {
-        transaction.type = "CONTRACT"
-        transaction.value = callResult.value1
-        transaction.token = "0x0000000000000000000000000000000000000000" // ETH
-
-        if(status == "EXECUTED") { // updated balance only if executed
-            let balance = loadOrCreateBalance(multisigAddr, <Address>Address.fromHexString(transaction.token))
-            balance.value = (balance.value.minus(<BigInt>transaction.value))
-            balance.save()
-            wallet = updateBalance(wallet, balance)
-        }
-
-    // value == 0 and data (Contract call with no value)
-    } else if(callResult.value1.equals(zeroBigInt()) && callResult.value2.length > 0) {
-        let tx = Transaction.load(transaction.id)
-
-        // Bypass this when the data is an ERC20 transfer (VALUE) or wallet config tx (ADMIN)
-        if(tx.type != "VALUE" && tx.type != "ADMIN") { 
-            transaction.type = "CONTRACT" 
-            transaction.value = zeroBigInt()
-            transaction.token = "0x0000000000000000000000000000000000000000" // ETH
-        }
-        // if ERC20 transfer (VALUE), reset from and to
-        if(tx.type == "VALUE") {
-            transaction.from = tx.from
-            transaction.to = tx.to
-        }
-    
-    // value == 0, no data 
-    } else {
-       // should never happen..
     }
 
-    transaction.status = status
-    transaction.submission = submission.id
-    transaction.save()
+    for(let i = 0; i < transactions.length; i++) {
+        let tx = transactions[i] as Transaction
 
-    wallet = pushTransactionIfNotExist(wallet, transaction)
+        tx.executionId = executionId
+        tx.from = multisigAddr
+        tx.to = callResult.value0
+    
+        // value > 0 and no data (Value transfer)
+        if(callResult.value1.gt(zeroBigInt()) && callResult.value2.length == 0) {
+            tx.type = "VALUE"
+            tx.value = callResult.value1
+            tx.token = "0x0000000000000000000000000000000000000000" // ETH
+    
+            if(status == "EXECUTED") { // updated balance only if executed
+                let balance = loadOrCreateBalance(multisigAddr, <Address>Address.fromHexString(tx.token))
+                balance.value = (balance.value.minus(<BigInt>tx.value))
+                balance.save()
+                wallet = updateBalance(wallet, balance)
+            }
+    
+        // value > 0 and data (Contract call with value)
+        } else if(callResult.value1.gt(zeroBigInt()) && callResult.value2.length > 0) {
+            tx.type = "CONTRACT"
+            tx.value = callResult.value1
+            tx.token = "0x0000000000000000000000000000000000000000" // ETH
+    
+            if(status == "EXECUTED") { // updated balance only if executed
+                let balance = loadOrCreateBalance(multisigAddr, <Address>Address.fromHexString(tx.token))
+                balance.value = (balance.value.minus(<BigInt>tx.value))
+                balance.save()
+                wallet = updateBalance(wallet, balance)
+            }
+    
+        // value == 0 and data (Contract call with no value)
+        } else if(callResult.value1.equals(zeroBigInt()) && callResult.value2.length > 0) {
+            let loadedtx = Transaction.load(tx.id)
+    
+            // Bypass this when the data is an ERC20 transfer (VALUE) or wallet config tx (ADMIN)
+            if(loadedtx.type != "VALUE" && loadedtx.type != "ADMIN") { 
+                tx.type = "CONTRACT" 
+                tx.value = zeroBigInt()
+                tx.token = "0x0000000000000000000000000000000000000000" // ETH
+            }
+            // if ERC20 transfer (VALUE), reset from and to
+            if(loadedtx.type == "VALUE") {
+                tx.from = tx.from
+                tx.to = tx.to
+            }
+        
+        // value == 0, no data 
+        } else {
+           // should never happen..
+        }
+    
+        tx.status = status
+        tx.submission = submission.id
+        tx.save()
+    
+        wallet = pushTransactionIfNotExist(wallet, tx)
+    }
+
     return wallet
 }
 
@@ -334,7 +350,16 @@ function handleERC20Transfer2(id: Address, event: Transfer): void {
 
     if(wallet != null) {
 
-        let transaction = loadOrCreateTransaction(multisigAddr, event)
+        let transaction = Transaction.load(crypto.keccak256(concat(multisigAddr, event.transaction.hash)).toHexString())
+        if(transaction != null) { // transaction already exists
+            let transactionId = crypto.keccak256(concat(concat(multisigAddr, event.transaction.hash), ByteArray.fromI32(event.logIndex.toI32())))
+            transaction.linkedTransactions.push(transactionId.toHexString())
+            transaction.save()
+
+
+            transaction = new Transaction(transactionId.toHexString())
+        }
+
         
         if(event.params.from == multisigAddr && event.transaction.to == event.address) { // direct transfer
             let allowance = loadOrCreateAllowance(multisigAddr, event.address, event.transaction.from)
@@ -359,7 +384,7 @@ function handleERC20Transfer2(id: Address, event: Transfer): void {
         balance.value = (multisigAddr == event.params.to) ? (balance.value.plus(event.params.value)) : (balance.value.minus(event.params.value))
         balance.save()
 
-        wallet = pushTransactionIfNotExist(wallet, transaction)
+        wallet = pushTransactionIfNotExist(wallet, <Transaction>transaction)
         wallet = updateBalance(wallet, balance)
         wallet.save()
     } 
