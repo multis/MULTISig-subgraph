@@ -1,116 +1,181 @@
-type Genesis @entity {
-    id                  : ID!
-    network             : String!
-}
-
-type Token @entity {
-    id                  : ID!
-    decimals            : BigInt!
-    symbol              : String!
-}
-
-type Balance @entity {
-    id                  : ID!
-    token               : Token!
-    value               : BigInt!
-    wallet              : Wallet!
-}
-
-type Allowance @entity {
-    id                  : ID!
-    spender             : Bytes!
-    token               : Token!
-    value               : BigInt!
-    wallet              : Wallet!
-}
 
 type Wallet @entity {
+    "Unique identifier of the MultiSig wallet (contract Address)"
     id                  : ID!
-    date                : BigInt!
+
+    "Indication of the Address who created the contract (warning: could be a GSN relayer)"
+    creator             : Bytes!            
+
+    "Network where the Multisig wallet is deployed (plain text: rinkeby, mainnet, etc.)"
+    network             : String!
+
+    "Timestamp when the Multisig wallet was deployed"
+    stamp               : BigInt!
+
+    "Block number when the Multisig wallet was deployed"
+    block               : BigInt!
+
+    "Transaction hash when the Multisig wallet was deployed"
     hash                : Bytes!
 
-    factoryAddress      : Bytes!
-    balances            : [Balance!]!
-    allowances          : [Allowance!]!
-    submissions         : [Submission!]! 
+    "Factory Address which deployed the Multisig wallet"
+    factory             : Bytes!
+
+    "Ether balance of the Multisig wallet (in WEI 10^18 ETH)"
+    balanceEther        : BigInt!
+
+    "List of past and pending transactions linked to the Multisig wallet "
     transactions        : [Transaction!]!
+
+    "List of owner Addresses of the Multisig wallet"
     owners              : [Bytes!]!
+
+    "Number of confirmation required to execute a transaction out of the Multisig wallet "
     required            : BigInt!
+
+    "Daily Limit (in WEI) - Maximum amount of ether than can be sent out of the Multisig wallet by an owner without requiring x confirmations"
     dailyLimit          : BigInt
-    totalTransactions   : BigInt!
 }
 
 type Transaction @entity {
+    "Unique identifier of the Multisig transaction (can be `sha3(multisig-addr, transaction-id)` for outgoing tx - otherwise `sha3(multisig-addr, tx-hash)` for incoming transactions and direct transfers)"
     id                  : ID!
-    date                : BigInt!
+
+    "Timestamp when the transaction was executed (past) or submitted (pending)"
+    stamp               : BigInt!
+
+    "Transaction hash of the execution (past) or submission (pending)"
     hash                : Bytes!
-    executionId         : BigInt
+
+    "Transaction ID used to keep track of the outgoing transactions within the Multisig wallet (only outgoing transactions)"
+    transactionId       : BigInt
+
+    "Ether amount (in WEI)"
+    amount              : BigInt   
     
-    status              : TransactionStatus
-    value               : BigInt
-    token               : Token
-    from                : Bytes
-    to                  : Bytes
+    #"Token (only ETHER)"
+    #token               : Token    
+
+    "Creator (or submittor) Address of the transaction"
+    creator             : Bytes
+
+    "Counter-party Address (sender or receiver)"
+    counterParty        : Bytes
+
+    "Status of the transaction"
+    status              : TransactionStatus   
+
+    "List of actions (CONFIRM, REVOKE) executed against the transaction (only for outgoing transactions)"
+    timeline            : [Action!]
+
+    "Type of the transaction"
     type                : TransactionType
-    subType             : TransactionSubType
-    submission          : Submission
+
+    "Sub-Type of the transaction (only if applicable)"
+    subType             : TransactionSubType         
+
+    "Ether Amount (in WEI) included in the Multisig transaction - transfered from the Multisig wallet when the transaction is executed (only for outgoing transactions) - equals to amount after execution"
+    value               : BigInt
+
+    "Destination of the transaction (only for outgoing transactions)  - equals to counterParty after execution"
+    destination         : Bytes
+
+    "Data of the transaction - smart contract input data bytecode (only for outgoing transactions) - see https://lab.miguelmota.com/ethereum-input-data-decoder/example/"
+    data                : Bytes
+
+    "Optional field to store extra information of type BigInt"
+    extraBigInt1        : BigInt
+
+    "Optional field to store extra information of type BigInt"
+    extraBigInt2        : BigInt
+
+    "Optional field to store extra information of type Bytes"
+    extraBytes1         : Bytes
+
+    "Optional field to store extra information of type Bytes"
+    extraBytes2         : Bytes
+
+    "Optional field to store extra information of type String"
+    extraString1        : String
+
+    "Optional field to store extra information of type String"
+    extraString2        : String
+
+    "Wallet parent"
     wallet              : Wallet! @derivedFrom(field: "transactions")
-    extraBigInt1        : BigInt 
-    extraBigInt2        : BigInt 
-    extraBytes1         : Bytes 
-    extraBytes2         : Bytes 
-    extraString1        : String 
-    extraString2        : String 
 }
 
-type Submission @entity {
-    id                  : ID!
-    date                : BigInt!
-    hash                : Bytes!
-    executionId         : BigInt!
+enum TransactionStatus {
+    "Transaction hasn't been executed yet and is waiting for confirmation or revokation from an owner to be executed"
+    PENDING
 
-    ended               : Boolean
-    value               : BigInt!
-    destination         : Bytes!
-    data                : Bytes!
-    actions             : [Action!]
-    transaction         : Transaction @derivedFrom(field: "submission")
-}
+    "Transaction was executed successfully"
+    EXECUTED
 
-type Action @entity {
-    id                  : ID!
-    date                : BigInt!
-    hash                : Bytes!
-    executionId         : BigInt!
+    "Transaction failed during the execution "
+    FAILED
 
-    type                : ActionsType!
-    sender              : Bytes!
-    submission          : Submission! @derivedFrom(field: "actions")
+    "Transaction was canceled"
+    CANCELED
 }
 
 enum TransactionType {
-    VALUE,
-    CONTRACT,
+    "Incoming or outgoing transaction of value only"
+    VALUE
+    
+    "Outgoing transaction of data and optionally value"
+    CONTRACT
+
+    "Transaction against the Multisig Wallet in order to change the settings (e.g add/remove owner, change daily limit)"
     ADMIN
 }
 
 enum TransactionSubType {
-    ADD_OWNER,
-    REMOVE_OWNER,
-    CHANGE_REQUIREMENT,
-    CHANGE_DAILY_LIMIT,
-    ERC20,
-    ALLOWANCE
+    ADMIN_ADD_OWNER,
+    ADMIN_REMOVE_OWNER,
+    ADMIN_CHANGE_REQUIREMENT,
+    ADMIN_CHANGE_DAILY_LIMIT
+    VALUE_ETHER_DEBIT
+    VALUE_ETHER_CREDIT
+}
+
+type Action @entity {
+
+    "Unique identifier of the Action `sha3(multisig-addr, tx-hash, transaction-id)"
+    id                  : ID!
+
+    "Timestamp when the action was sent"
+    stamp               : BigInt
+
+    "Transaction hash when the action was sent"
+    hash                : Bytes
+
+    "Transaction ID associated to the action"
+    transactionId       : BigInt
+
+    "Type of the action (CONFIRM or REVOKE)"
+    type                : ActionsType
+
+    "Boolean flag to express if the action results of a submission"
+    isSubmission        : Boolean!
+
+    "Boolean flag to express if the action results of an execution"
+    isExecution         : Boolean!
+
+    "Boolean flag to express if the action results of a cancelation"
+    isCancelation       : Boolean!
+
+    "Sender Address of the action"
+    sender              : Bytes
+
+    "Transaction parent"
+    transaction         : Transaction! @derivedFrom(field: "timeline")
 }
 
 enum ActionsType {
-    CONFIRM,
-    REVOKE,
+    "action of confirmation (therefore a submission or execution)"
+    CONFIRM
+    
+    "action of revokation (cancel transaction)"
+    REVOKE
 }
-
-enum TransactionStatus {
-    EXECUTED,
-    FAILED,
-    CANCELED
-}
-
