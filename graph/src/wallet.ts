@@ -4,7 +4,7 @@ import { Execution, Submission as SubmissionEvent, Deposit,
          Confirmation, Revocation } from '../generated/templates/GSNMultiSigWalletWithDailyLimit/GSNMultiSigWalletWithDailyLimit'
 import { Wallet, Transaction, Action, } from '../generated/schema'
 import { zeroBigInt, concat } from './utils'
-import { log, Address, crypto, ByteArray, BigInt, ethereum } from '@graphprotocol/graph-ts'
+import { log, Address, Bytes, crypto, ByteArray, BigInt, ethereum } from '@graphprotocol/graph-ts'
 
 
 
@@ -30,11 +30,17 @@ export function handleSubmission(event: SubmissionEvent): void {
         transaction.stamp               = event.block.timestamp
         transaction.hash                = event.transaction.hash
         transaction.transactionId       = event.params.transactionId
+        transaction.counterparty        = transaction.destination
+        transaction.status              = "PENDING"
         transaction.value               = callResult.value1
         transaction.destination         = callResult.value0
-        transaction.data                = callResult.value2
-        transaction.counterParty        = transaction.destination
-        transaction.status              = "PENDING"
+        if(callResult.value2.length < 2700) { // max size of a column. In some very rare cases, the method data bytecode is very long 
+            transaction.data            = callResult.value2
+        } else {
+            log.warning("multisig: {} transaction {} - cannot store transaction.data (too long), size: {}", 
+                        [multisigAddr.toHexString(), event.transaction.hash.toHexString(), ByteArray.fromI32(callResult.value2.length).toHexString()])
+        }
+
         if(transaction.value.gt(zeroBigInt()) && transaction.data.length == 0) {
             transaction.type            = "VALUE"
             transaction.subType         = "VALUE_ETHER_DEBIT"
@@ -63,7 +69,6 @@ export function handleConfirmation(event: Confirmation): void {
     action.transactionId = event.params.transactionId
     action.type = "CONFIRM"
     action.sender = event.params.sender
-    //other properties are filled by handleSubmission, handleExecution or handleExecutionFailure
     action.save()
 
     let transaction = getTransaction(multisigAddr, event.params.transactionId, event)
@@ -81,18 +86,23 @@ export function handleRevocation(event: Revocation): void {
     action.stamp = event.block.timestamp
     action.hash = event.transaction.hash
     action.transactionId = event.params.transactionId
-    action.isCancelation = true
+    action.isRevokation = true
     action.type = "REVOKE"
     action.sender = event.params.sender
     action.save()
 
-    let transaction = getTransaction(multisigAddr, event.params.transactionId, event)
-    transaction.stamp               = event.block.timestamp // overwrite the stamp
-    transaction.hash                = event.transaction.hash // overwrite the hash
-    transaction.status              = "CANCELED"
 
-    transaction = addActionToTransaction(transaction, action)
-    transaction.save()
+    let multisig = GSNMultiSigWalletWithDailyLimit.bind(multisigAddr)
+    let confirmationCount = multisig.getConfirmationCount(event.params.transactionId)
+    if(confirmationCount.equals(zeroBigInt())) {
+        let transaction = getTransaction(multisigAddr, event.params.transactionId, event)
+        transaction.stamp               = event.block.timestamp // overwrite the stamp
+        transaction.hash                = event.transaction.hash // overwrite the hash
+        transaction.status              = "CANCELLED"
+    
+        transaction = addActionToTransaction(transaction, action)
+        transaction.save()
+    }
 }
 
 export function handleExecution (event: Execution): void {
@@ -153,7 +163,7 @@ export function handleDeposit(event: Deposit): void {
         transaction.hash                = event.transaction.hash
         transaction.transactionId       = null
         transaction.amount              = event.params.value
-        transaction.counterParty        = event.params.sender
+        transaction.counterparty        = event.params.sender
         transaction.status              = "EXECUTED"
         transaction.type                = "VALUE"
         transaction.subType             = "VALUE_ETHER_CREDIT"
@@ -231,7 +241,6 @@ export function handleDailyLimitChange(event: DailyLimitChange): void {
     if(wallet != null) {
         let action = getAction(multisigAddr, event)
 
-
         if(action.transactionId != null) {
             let transaction = getTransaction(multisigAddr, action.transactionId, event)
             transaction.type = "ADMIN"
@@ -255,7 +264,6 @@ export function handleRequirementChange(event: RequirementChange): void {
 
     if(wallet != null) {
         let action = getAction(multisigAddr, event)
-
 
         if(action.transactionId != null) {
             let transaction = getTransaction(multisigAddr, action.transactionId, event)
@@ -297,7 +305,7 @@ function getAction(multisig: Address, event: ethereum.Event): Action {
         action = new Action(id.toHexString())
         action.isSubmission = false
         action.isExecution = false
-        action.isCancelation = false
+        action.isRevokation = false
     }
 
     return action as Action

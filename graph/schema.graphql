@@ -60,7 +60,7 @@ type Transaction @entity {
     creator             : Bytes
 
     "Counter-party Address (sender or receiver)"
-    counterParty        : Bytes
+    counterparty        : Bytes
 
     "Status of the transaction"
     status              : TransactionStatus   
@@ -115,8 +115,8 @@ enum TransactionStatus {
     "Transaction failed during the execution "
     FAILED
 
-    "Transaction was canceled"
-    CANCELED
+    "Transaction was cancelled"
+    CANCELLED
 }
 
 enum TransactionType {
@@ -162,8 +162,8 @@ type Action @entity {
     "Boolean flag to express if the action results of an execution"
     isExecution         : Boolean!
 
-    "Boolean flag to express if the action results of a cancelation"
-    isCancelation       : Boolean!
+    "Boolean flag to express if the action results of a revokation"
+    isRevokation        : Boolean!
 
     "Sender Address of the action"
     sender              : Bytes
