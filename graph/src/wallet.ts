@@ -30,7 +30,7 @@ export function handleSubmission(event: SubmissionEvent): void {
         transaction.stamp               = event.block.timestamp
         transaction.hash                = event.transaction.hash
         transaction.transactionId       = event.params.transactionId
-        transaction.counterparty        = transaction.destination
+        transaction.counterparty        = callResult.value0
         transaction.status              = "PENDING"
         transaction.value               = callResult.value1
         transaction.destination         = callResult.value0

@@ -3,7 +3,7 @@ type Wallet @entity {
     "Unique identifier of the MultiSig wallet (contract Address)"
     id                  : ID!
 
-    "Indication of the Address who created the contract (warning: could be a GSN relayer)"
+    "Indication of the Address who created the contract"
     creator             : Bytes!            
 
     "Network where the Multisig wallet is deployed (plain text: rinkeby, mainnet, etc.)"
