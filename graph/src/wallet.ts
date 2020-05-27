@@ -29,6 +29,7 @@ export function handleSubmission(event: SubmissionEvent): void {
         let transaction = getTransaction(multisigAddr, event.params.transactionId, event)
         transaction.stamp               = event.block.timestamp
         transaction.hash                = event.transaction.hash
+        transaction.block               = event.block.number
         transaction.transactionId       = event.params.transactionId
         transaction.status              = "PENDING"
         transaction.value               = callResult.value1
@@ -100,6 +101,8 @@ export function handleRevocation(event: Revocation): void {
         let transaction = getTransaction(multisigAddr, event.params.transactionId, event)
         transaction.stamp               = event.block.timestamp // overwrite the stamp
         transaction.hash                = event.transaction.hash // overwrite the hash
+        transaction.block               = event.block.number // overwrite the block #
+        transaction.logIndex            = event.logIndex
         transaction.status              = "CANCELLED"
     
         transaction = addActionToTransaction(transaction, action)
@@ -121,6 +124,8 @@ export function handleExecution (event: Execution): void {
     let transaction = getTransaction(multisigAddr, event.params.transactionId, event)
     transaction.stamp               = event.block.timestamp // overwrite the stamp
     transaction.hash                = event.transaction.hash // overwrite the hash
+    transaction.block               = event.block.number // overwrite the block #
+    transaction.logIndex            = event.logIndex
     transaction.amount              = transaction.value
     transaction.status              = "EXECUTED"
 
@@ -146,6 +151,8 @@ export function handleExecutionFailure (event: Execution): void {
     let transaction = getTransaction(multisigAddr, event.params.transactionId, event)
     transaction.stamp               = event.block.timestamp // overwrite the stamp
     transaction.hash                = event.transaction.hash // overwrite the hash
+    transaction.block               = event.block.number // overwrite the block #
+    transaction.logIndex            = event.logIndex
     transaction.amount              = transaction.value
     transaction.status              = "FAILED"
 
@@ -163,6 +170,8 @@ export function handleDeposit(event: Deposit): void {
         let transaction = getTransaction(multisigAddr, null, event)
         transaction.stamp               = event.block.timestamp
         transaction.hash                = event.transaction.hash
+        transaction.block               = event.block.number
+        transaction.logIndex            = event.logIndex
         transaction.transactionId       = null
         transaction.amount              = event.params.value
         transaction.counterparty        = event.params.sender

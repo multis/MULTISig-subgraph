@@ -41,11 +41,17 @@ type Transaction @entity {
     "Unique identifier of the Multisig transaction (can be `sha3(multisig-addr, transaction-id)` for outgoing tx - otherwise `sha3(multisig-addr, tx-hash)` for incoming transactions and direct transfers)"
     id                  : ID!
 
-    "Timestamp when the transaction was executed (past) or submitted (pending)"
+    "Timestamp when the transaction was executed (past) or submitted (pending) or deposit event"
     stamp               : BigInt!
 
-    "Transaction hash of the execution (past) or submission (pending)"
+    "Transaction hash of the execution (past) or submission (pending) or deposit event"
     hash                : Bytes!
+
+    "Block mumber of the execution (past) or submission (pending) or deposit event"
+    block               : BigInt!
+
+    "Log Index of the execution or deposit event"
+    logIndex            : BigInt
 
     "Transaction ID used to keep track of the outgoing transactions within the Multisig wallet (only outgoing transactions)"
     transactionId       : BigInt
