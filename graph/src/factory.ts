@@ -15,7 +15,7 @@ export function handleContractInstantiation(event: ContractInstantiation): void 
   wallet.stamp               = event.block.timestamp
   wallet.block               = event.block.number
   wallet.hash                = event.transaction.hash
-  wallet.factory             = event.transaction.to as Address
+  wallet.factory             = event.address as Address
   wallet.balanceEther        = zeroBigInt()
   wallet.transactions        = []
   wallet.owners              = multisigInstance.getOwners() as Bytes[]
