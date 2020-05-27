@@ -30,7 +30,6 @@ export function handleSubmission(event: SubmissionEvent): void {
         transaction.stamp               = event.block.timestamp
         transaction.hash                = event.transaction.hash
         transaction.transactionId       = event.params.transactionId
-        transaction.counterparty        = callResult.value0
         transaction.status              = "PENDING"
         transaction.value               = callResult.value1
         transaction.destination         = callResult.value0
@@ -40,6 +39,9 @@ export function handleSubmission(event: SubmissionEvent): void {
             log.warning("multisig: {} transaction {} - cannot store transaction.data (too long), size: {}", 
                         [multisigAddr.toHexString(), event.transaction.hash.toHexString(), ByteArray.fromI32(callResult.value2.length).toHexString()])
         }
+
+        transaction.counterparty        = transaction.destination 
+        transaction.amount              = transaction.value 
 
         if(transaction.value.gt(zeroBigInt()) && transaction.data.length == 0) {
             transaction.type            = "VALUE"
