@@ -11,7 +11,7 @@ This Subgraph dynamically tracks activity on any MULTISig (and Gnosis Multisig) 
 
 ## Prerequiste
 
-- libsecret-1-dev
+- libsecret-1-dev (ubuntu)
 ```
 $ sudo apt-get install libsecret-1-dev
 ```
@@ -29,7 +29,7 @@ $ yarn global add @graphprotocol/graph-cli
 
 ## Getting started
 
-0. Get the source and install the ddependencies
+0. Get the source and install the dependencies
 
 ```
 $ git git@github.com:multis/MULTISig-subgraph.git
@@ -47,11 +47,11 @@ $ ./script/build.sh [--reset] [--code-gen] [--network mainnet|rinkeby|ropsten]
 - `--code-gen -c` (re)generate code from schema [optional, default: false]
 - `--network -n` select a target network (mainnet, ropsten or rinkeby) [optional, default: mainnet]
 
-2. Start a local node
+2. Start a node and deploy locally
 
 ```
 $ docker-compose -f ./node/docker-compose.yml up
-$ graph create --node http://localhost:8020/ gjeanmart/multisig
+$ graph create --node http://localhost:8020/ multis/multisig-<network>
 $ ./script/deploy.sh [--network mainnet|rinkeby|ropsten] --local
 ```
 
