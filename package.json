@@ -1,20 +1,22 @@
 {
-  "name": "transaction-history",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "name": "multisig",
+  "license": "UNLICENSED",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "codegen": "graph codegen",
+    "build": "graph build",
+    "prepare:mainnet": "mustache config/mainnet.json subgraph.template.yaml > subgraph.yaml",
+    "prepare:rinkeby": "mustache config/rinkeby.json subgraph.template.yaml > subgraph.yaml",
+    "prepare:ropsten": "mustache config/ropsten.json subgraph.template.yaml > subgraph.yaml",
+    "deploy": "graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ gjeanmart/multisig",
+    "create-local": "graph create --node http://localhost:8020/ gjeanmart/multisig",
+    "remove-local": "graph remove --node http://localhost:8020/ gjeanmart/multisig",
+    "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 gjeanmart/multisig"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
-    "@truffle/hdwallet-provider": "^1.0.34",
-    "dotenv": "^8.2.0",
-    "readline-sync": "^1.4.10",
-    "request": "^2.88.2",
-    "request-promise": "^4.2.5",
-    "web3": "^1.2.7"
+    "@graphprotocol/graph-cli": "0.18.0",
+    "@graphprotocol/graph-ts": "0.18.1"
+  },
+  "devDependencies": {
+    "mustache": "^3.1.0"
   }
 }
