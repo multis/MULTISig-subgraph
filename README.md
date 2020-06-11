@@ -79,6 +79,94 @@ $ ./script/deploy.sh [--network mainnet|rinkeby|ropsten] [--local]
 ## Model
 
 - Wallet
-- Transaction
-- Action
+    -  Transaction
+        - Action
 
+## Query samples
+
+### Wallet (full details)
+
+```graphql
+{
+  wallet(id: "0x1cc38e12c2a81aec2b2f952f4280b3d2b96a8bba") {
+    id
+    creator
+    network
+    stamp
+    block
+    hash
+    factory
+    balanceEther
+    owners
+    required
+    dailyLimit
+    nextId
+    transactions(orderBy: stamp, orderDirection: desc) {
+      id
+      stamp
+      hash
+      transactionId
+      amount
+      creator
+      counterparty
+      status
+      type
+      subType
+      value
+      data
+      destination
+      timeline(orderBy: stamp, orderDirection: desc) {
+        id
+        stamp
+        hash
+        transactionId
+        type
+        sender
+        isExecution
+        isSubmission
+        isRevokation
+      }
+    }
+  }
+}
+```
+
+### Wallet (admin activity only)
+
+```graphql
+{
+  wallet(id: "0x93ffb68b60034e33f3bae9e68d3a53f0e084418d") {
+    id
+    stamp
+    owners
+    dailyLimit
+    required
+    transactions(where: {type: ADMIN}, orderBy: stamp, orderDirection: desc) {
+      hash
+      stamp
+      creator
+      status
+      type
+      subType
+      extraBytes1
+      extraBytes2
+      extraBigInt1
+      extraBigInt2
+      extraString1
+      extraString2
+    }
+  }
+}
+```
+
+### All wallets
+
+```graphql
+{
+  wallets(skip: 0) {
+    id
+    factory
+    nextId
+  }
+}
+```
