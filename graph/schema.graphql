@@ -35,6 +35,9 @@ type Wallet @entity {
 
     "Daily Limit (in WEI) - Maximum amount of ether than can be sent out of the Multisig wallet by an owner without requiring x confirmations"
     dailyLimit          : BigInt
+
+    "Next ID (transaction-id) for outgoing transactions - represents getTransactionCount(pending:true, executed:true)"
+    nextId              : BigInt!
 }
 
 type Transaction @entity {
@@ -182,9 +185,12 @@ type Action @entity {
 }
 
 enum ActionsType {
-    "action of confirmation (therefore a submission or execution)"
+    "action of confirmation "
     CONFIRM
     
     "action of revokation (cancel transaction)"
     REVOKE
+    
+    "action of execution"
+    EXECUTE
 }

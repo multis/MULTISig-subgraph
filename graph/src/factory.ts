@@ -21,6 +21,7 @@ export function handleContractInstantiation(event: ContractInstantiation): void 
   wallet.owners              = multisigInstance.getOwners() as Bytes[]
   wallet.required            = multisigInstance.required()
   wallet.dailyLimit          = multisigInstance.dailyLimit()
+  wallet.nextId              = zeroBigInt()
 
   wallet.save()
 

@@ -3,7 +3,7 @@ import { Execution, Submission as SubmissionEvent, Deposit,
          RequirementChange, GSNMultiSigWalletWithDailyLimit, 
          Confirmation, Revocation } from '../generated/templates/GSNMultiSigWalletWithDailyLimit/GSNMultiSigWalletWithDailyLimit'
 import { Wallet, Transaction, Action, } from '../generated/schema'
-import { zeroBigInt, concat } from './utils'
+import { zeroBigInt, oneBigInt, concat } from './utils'
 import { log, Address, Bytes, crypto, ByteArray, BigInt, ethereum } from '@graphprotocol/graph-ts'
 
 
@@ -16,7 +16,7 @@ export function handleSubmission(event: SubmissionEvent): void {
     if(wallet != null) {
         let multisig = GSNMultiSigWalletWithDailyLimit.bind(multisigAddr)
         let callResult = multisig.transactions(event.params.transactionId)
-
+        
         let action = getAction(multisigAddr, event)
         action.stamp = event.block.timestamp
         action.hash = event.transaction.hash
@@ -25,7 +25,7 @@ export function handleSubmission(event: SubmissionEvent): void {
         //action.sender = filled by handleConfirmation
         action.isSubmission = true
         action.save()
-
+        
         let transaction = getTransaction(multisigAddr, event.params.transactionId, event)
         transaction.stamp               = event.block.timestamp
         transaction.hash                = event.transaction.hash
@@ -55,6 +55,7 @@ export function handleSubmission(event: SubmissionEvent): void {
         transaction.save()
 
         wallet = addTransactionToWallet(<Wallet> wallet, transaction)
+        wallet.nextId = wallet.nextId.plus(oneBigInt())
         wallet.save()
 
     } else {
@@ -95,19 +96,20 @@ export function handleRevocation(event: Revocation): void {
     action.save()
 
 
+    let transaction = getTransaction(multisigAddr, event.params.transactionId, event)
+    
     let multisig = GSNMultiSigWalletWithDailyLimit.bind(multisigAddr)
     let confirmationCount = multisig.getConfirmationCount(event.params.transactionId)
     if(confirmationCount.equals(zeroBigInt())) {
-        let transaction = getTransaction(multisigAddr, event.params.transactionId, event)
         transaction.stamp               = event.block.timestamp // overwrite the stamp
         transaction.hash                = event.transaction.hash // overwrite the hash
         transaction.block               = event.block.number // overwrite the block #
         transaction.logIndex            = event.logIndex
         transaction.status              = "CANCELLED"
-    
-        transaction = addActionToTransaction(transaction, action)
-        transaction.save()
     }
+    
+    transaction = addActionToTransaction(transaction, action)
+    transaction.save()
 }
 
 export function handleExecution (event: Execution): void {
@@ -146,6 +148,10 @@ export function handleExecutionFailure (event: Execution): void {
     action.hash = event.transaction.hash
     action.transactionId = event.params.transactionId
     action.isExecution = true
+    if(action.type == null) { // In the case of a re-execution after failed confirmation->executation
+        action.type = "EXECUTE"
+        action.sender = event.transaction.from // Incorrect when GSN
+    }
     action.save()
 
     let transaction = getTransaction(multisigAddr, event.params.transactionId, event)

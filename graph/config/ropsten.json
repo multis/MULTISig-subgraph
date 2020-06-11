@@ -1,0 +1,7 @@
+{
+  "network": "ropsten",
+  "factories": {
+    "gsn": {"addr": "0x0000000000000000000000000000000000000000", "birthBlock": 0},
+    "gnosis": {"addr": "0x5cb85db3e237cac78cbb3fd63e84488cac5bd3dd", "birthBlock": 667910}
+  }
+}
