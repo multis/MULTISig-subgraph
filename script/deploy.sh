@@ -6,10 +6,9 @@ GRAPH_NODE_LOCAL=http://localhost:8020/
 IPFS_NODE_THEGRAPH=https://api.thegraph.com/ipfs/
 IPFS_NODE_LOCAL=http://localhost:5001/
 
-PROJECT_ID_MAINNET=gjeanmart/multisig
-PROJECT_ID_RINKEBY=gjeanmart/multisig-rinkeby
-PROJECT_ID_ROPSTEN=gjeanmart/multisig-ropsten
-PROJECT_ID_RINKEBY_GSN_ONLY=gjeanmart/multisig-rinkeby-gsn-only
+PROJECT_ID_MAINNET=multis/multisig-mainnet
+PROJECT_ID_RINKEBY=multis/multisig-rinkeby
+PROJECT_ID_ROPSTEN=multis/multisig-ropsten
 
 LOCAL=0
 NETWORK=mainnet
@@ -59,9 +58,6 @@ if [ $NETWORK = "rinkeby" ]; then
 fi
 if [ $NETWORK = "ropsten" ]; then
     PROJECT_ID=$PROJECT_ID_ROPSTEN
-fi
-if [ $NETWORK = "rinkeby-gsn-only" ]; then
-    PROJECT_ID=$PROJECT_ID_RINKEBY_GSN_ONLY
 fi
 
 graph deploy --debug --node $GRAPH_NODE --ipfs $IPFS_NODE $PROJECT_ID

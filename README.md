@@ -1,7 +1,13 @@
 
-# Multisig Transaction History (Graph-Protocol)
+# MULTISig-subgraph
 
-This project is an attempt to index the transaction history of our MULTISig wallets as well as metadata (owner, dayly limit, etc.) in order to efficiently (fast to load) and truthfully (blockchain information) build the Multis Wallet UI.
+This Subgraph dynamically tracks activity on any MULTISig (and Gnosis Multisig) wallets deployed through a factory. 
+
+### Networks:
+
+- Ropsten https://thegraph.com/explorer/subgraph/multis/multisig-ropsten
+- Rinkeby https://thegraph.com/explorer/subgraph/multis/multisig-rinkeby
+- Mainnet https://thegraph.com/explorer/subgraph/multis/multisig-mainnet
 
 ## Prerequiste
 
@@ -23,11 +29,12 @@ $ yarn global add @graphprotocol/graph-cli
 
 ## Getting started
 
-0. Source
+0. Get the source and install the ddependencies
 
 ```
-git clone https://github.com/gjeanmart/ethereum-multisig-transaction-history
-cd ./ethereum-multisig-transaction-history/graph
+$ git git@github.com:multis/MULTISig-subgraph.git
+$ cd ./MULTISig-subgraph
+$ npm install
 ```
 
 1. Build
@@ -51,7 +58,7 @@ $ ./script/deploy.sh [--network mainnet|rinkeby|ropsten] --local
 **Note: can't really work without an archive node.**
 
 
-## Deploy on production
+## Deployment
 
 1. Authenticate to a graph node
 
@@ -59,7 +66,7 @@ $ ./script/deploy.sh [--network mainnet|rinkeby|ropsten] --local
 $ graph auth https://api.thegraph.com/deploy/ <token>
 ```
 
-2. deploy
+2. Deploy
 
 ```
 $ ./script/deploy.sh [--network mainnet|rinkeby|ropsten] [--local]
