@@ -3,13 +3,10 @@ import { Execution, Submission as SubmissionEvent, Deposit,
          RequirementChange, GSNMultiSigWalletWithDailyLimit, 
          Confirmation, Revocation } from '../generated/templates/GSNMultiSigWalletWithDailyLimit/GSNMultiSigWalletWithDailyLimit'
 import { Wallet, Transaction, Action, } from '../generated/schema'
-import { zeroBigInt, oneBigInt, concat } from './utils'
+import { zeroBigInt, oneBigInt, concat, padLeft } from './utils'
 import { log, Address, Bytes, crypto, ByteArray, BigInt, ethereum } from '@graphprotocol/graph-ts'
 
-
-
 export function handleSubmission(event: SubmissionEvent): void {
-
     let multisigAddr = event.address
     let wallet = Wallet.load(multisigAddr.toHex())
 
@@ -64,7 +61,6 @@ export function handleSubmission(event: SubmissionEvent): void {
 }
 
 export function handleConfirmation(event: Confirmation): void {
-
     let multisigAddr = event.address
 
     let action = getAction(multisigAddr, event)
@@ -83,7 +79,6 @@ export function handleConfirmation(event: Confirmation): void {
 }
 
 export function handleRevocation(event: Revocation): void {
-
     let multisigAddr = event.address
 
     let action = getAction(multisigAddr, event)
@@ -113,25 +108,24 @@ export function handleRevocation(event: Revocation): void {
 }
 
 export function handleExecution (event: Execution): void {
-
     let multisigAddr = event.address
 
-    let action = getAction(multisigAddr, event) 
-    action.stamp = event.block.timestamp
-    action.hash = event.transaction.hash
-    action.transactionId = event.params.transactionId
-    action.isExecution = true
+    let action = getAction(multisigAddr, event)
+    action.stamp          = event.block.timestamp
+    action.hash           = event.transaction.hash
+    action.transactionId  = event.params.transactionId
+    action.isExecution    = true
     action.save()
 
     let transaction = getTransaction(multisigAddr, event.params.transactionId, event)
-    transaction.stamp               = event.block.timestamp // overwrite the stamp
-    transaction.hash                = event.transaction.hash // overwrite the hash
-    transaction.block               = event.block.number // overwrite the block #
-    transaction.logIndex            = event.logIndex
-    transaction.amount              = transaction.value
-    transaction.status              = "EXECUTED"
+    transaction.stamp     = event.block.timestamp // overwrite the stamp
+    transaction.hash      = event.transaction.hash // overwrite the hash
+    transaction.block     = event.block.number // overwrite the block #
+    transaction.logIndex  = event.logIndex
+    transaction.amount    = (transaction.value != null)  ? transaction.value : zeroBigInt()
+    transaction.status    = "EXECUTED"
 
-    transaction = addActionToTransaction(transaction, action)
+    transaction           = addActionToTransaction(transaction, action)
     transaction.save()
 
     let wallet = Wallet.load(multisigAddr.toHex())
@@ -140,7 +134,6 @@ export function handleExecution (event: Execution): void {
 }
 
 export function handleExecutionFailure (event: Execution): void {
-
     let multisigAddr = event.address
 
     let action = getAction(multisigAddr, event)
@@ -168,7 +161,6 @@ export function handleExecutionFailure (event: Execution): void {
 
 
 export function handleDeposit(event: Deposit): void {
-
     let multisigAddr = event.address
     let wallet = Wallet.load(multisigAddr.toHex())
 
@@ -196,7 +188,6 @@ export function handleDeposit(event: Deposit): void {
 }
 
 export function handleOwnerAddition(event: OwnerAddition): void {
-
     let multisigAddr = event.address
     let wallet = Wallet.load(multisigAddr.toHex())
 
@@ -222,7 +213,6 @@ export function handleOwnerAddition(event: OwnerAddition): void {
 }
 
 export function handleOwnerRemoval(event: OwnerRemoval): void {
-
     let multisigAddr = event.address
     let wallet = Wallet.load(multisigAddr.toHex())
 
@@ -251,7 +241,6 @@ export function handleOwnerRemoval(event: OwnerRemoval): void {
 }
 
 export function handleDailyLimitChange(event: DailyLimitChange): void { 
-
     let multisigAddr = event.address
     let wallet = Wallet.load(multisigAddr.toHex())
 
@@ -275,7 +264,6 @@ export function handleDailyLimitChange(event: DailyLimitChange): void {
 }
 
 export function handleRequirementChange(event: RequirementChange): void {
-
     let multisigAddr = event.address
     let wallet = Wallet.load(multisigAddr.toHex())
 
@@ -301,11 +289,11 @@ export function handleRequirementChange(event: RequirementChange): void {
 function getTransaction(multisig: Address, transactionId: BigInt|null, event: ethereum.Event): Transaction {
     let id = new ByteArray(0)
     if(transactionId != null) {
-        id = crypto.keccak256(concat(multisig, ByteArray.fromI32(transactionId.toI32())))
+        id = crypto.keccak256(concat(multisig, ByteArray.fromHexString(padLeft(transactionId.toHexString(), 64, "0"))))
     } else {
         id = crypto.keccak256(concat(multisig, event.transaction.hash))
     }
-    
+
     let transaction = Transaction.load(id.toHexString())
     if(transaction == null) {
         transaction = new Transaction(id.toHexString())
@@ -339,7 +327,6 @@ function addActionToTransaction(transaction: Transaction, action: Action): Trans
 }
 
 function addTransactionToWallet(wallet: Wallet, transaction: Transaction): Wallet {
-
     let transactions = wallet.transactions
 
     if (transactions.indexOf(transaction.id, 0) == -1) {
