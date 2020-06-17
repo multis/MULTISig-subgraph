@@ -230,7 +230,7 @@ export function handleOwnerRemoval(event: OwnerRemoval): void {
         let owners = wallet.owners
         let index = owners.indexOf(event.params.owner, 0)
         if (index > -1) {
-            owners = owners.splice(index, 1);
+            owners.splice(index, 1)
         }
         wallet.owners = owners
         wallet.save()
