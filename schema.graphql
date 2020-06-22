@@ -171,8 +171,14 @@ type Action @entity {
     "Boolean flag to express if the action results of a submission"
     isSubmission        : Boolean!
 
+    "Boolean flag to express if the action results of a conformation"
+    isConfirmation      : Boolean!
+
     "Boolean flag to express if the action results of an execution"
     isExecution         : Boolean!
+
+    "Boolean flag to express if the action results of a failed execution"
+    isExecutionFailed   : Boolean!
 
     "Boolean flag to express if the action results of a revokation"
     isRevokation        : Boolean!

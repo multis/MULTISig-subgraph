@@ -69,6 +69,7 @@ export function handleConfirmation(event: Confirmation): void {
     action.transactionId = event.params.transactionId
     action.type = "CONFIRM"
     action.sender = event.params.sender
+    action.isConfirmation = true
     action.save()
 
     let transaction = getTransaction(multisigAddr, event.params.transactionId, event)
@@ -140,7 +141,7 @@ export function handleExecutionFailure (event: Execution): void {
     action.stamp = event.block.timestamp
     action.hash = event.transaction.hash
     action.transactionId = event.params.transactionId
-    action.isExecution = true
+    action.isExecutionFailed = true
     if(action.type == null) { // In the case of a re-execution after failed confirmation->executation
         action.type = "EXECUTE"
         action.sender = event.transaction.from // Incorrect when GSN
@@ -307,10 +308,12 @@ function getAction(multisig: Address, event: ethereum.Event): Action {
 
     let action = Action.load(id.toHexString())
     if(action == null) {
-        action = new Action(id.toHexString())
-        action.isSubmission = false
-        action.isExecution = false
-        action.isRevokation = false
+        action                   = new Action(id.toHexString())
+        action.isSubmission      = false
+        action.isExecution       = false
+        action.isRevokation      = false
+        action.isConfirmation    = false
+        action.isExecutionFailed = false
     }
 
     return action as Action
