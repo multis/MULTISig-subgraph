@@ -2,6 +2,7 @@ import { Execution, Submission as SubmissionEvent, Deposit,
          OwnerAddition, OwnerRemoval, DailyLimitChange, 
          RequirementChange, GSNMultiSigWalletWithDailyLimit, 
          Confirmation, Revocation } from '../generated/templates/GSNMultiSigWalletWithDailyLimit/GSNMultiSigWalletWithDailyLimit'
+import { TransactionRelayed } from '../generated/RelayHub/RelayHub'
 import { Wallet, Transaction, Action, } from '../generated/schema'
 import { zeroBigInt, oneBigInt, concat, padLeft } from './utils'
 import { log, Address, Bytes, crypto, ByteArray, BigInt, ethereum } from '@graphprotocol/graph-ts'
@@ -115,7 +116,11 @@ export function handleExecution (event: Execution): void {
     action.stamp          = event.block.timestamp
     action.hash           = event.transaction.hash
     action.transactionId  = event.params.transactionId
+    action.sender         = event.transaction.from
     action.isExecution    = true
+    if(action.type == null) {
+        action.type = "EXECUTE"
+    }
     action.save()
 
     let transaction = getTransaction(multisigAddr, event.params.transactionId, event)
@@ -138,13 +143,13 @@ export function handleExecutionFailure (event: Execution): void {
     let multisigAddr = event.address
 
     let action = getAction(multisigAddr, event)
-    action.stamp = event.block.timestamp
-    action.hash = event.transaction.hash
-    action.transactionId = event.params.transactionId
+    action.stamp             = event.block.timestamp
+    action.hash              = event.transaction.hash
+    action.transactionId     = event.params.transactionId
+    action.sender            = event.transaction.from
     action.isExecutionFailed = true
-    if(action.type == null) { // In the case of a re-execution after failed confirmation->executation
+    if(action.type == null) {
         action.type = "EXECUTE"
-        action.sender = event.transaction.from // Incorrect when GSN
     }
     action.save()
 
@@ -284,6 +289,17 @@ export function handleRequirementChange(event: RequirementChange): void {
 
     } else {
         log.warning("handleRequirementChange::Wallet {} not found", [multisigAddr.toHexString()])
+    }
+}
+
+export function handleTransactionRelayed(event: TransactionRelayed): void {
+    let multisigAddr = event.params.to
+    let wallet = Wallet.load(multisigAddr.toHex())
+
+    if(wallet != null) {
+        let action = getAction(multisigAddr, event)
+        action.sender = event.params.from 
+        action.save()
     }
 }
 

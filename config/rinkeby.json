@@ -3,5 +3,6 @@
   "factories": {
     "gsn": {"addr": "0x64C50306e1061C76D00AA7920484d87f90f8DD5F", "birthBlock": 5756898},
     "gnosis": {"addr": "0x19ba60816abca236baa096105df09260a4791418", "birthBlock": 1821876}
-  }
+  },
+  "relayHub": {"addr": "0xD216153c06E857cD7f72665E0aF1d7D82172F494", "birthBlock": 4860757}
 }

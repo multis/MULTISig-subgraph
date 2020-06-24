@@ -3,9 +3,6 @@ description: Multisig Subgraph
 schema:
   file: ./schema.graphql
 dataSources:
-  
-  #####################################################################################
-  ## GSN FACTORY
   - kind: ethereum/contract
     name: GSNMultisigFactory
     network: {{network}}
@@ -30,8 +27,6 @@ dataSources:
           handler: handleContractInstantiation
       file: ./src/factory.ts
 
-  #####################################################################################
-  ## GNOSIS FACTORY
   - kind: ethereum/contract
     name: GnosisMultisigFactory
     network: {{network}}
@@ -55,6 +50,28 @@ dataSources:
         - event: ContractInstantiation(address,address)
           handler: handleContractInstantiation
       file: ./src/factory.ts
+
+  - kind: ethereum/contract
+    name: RelayHub
+    network: {{network}}
+    source:
+      address: '{{relayHub.addr}}'
+      abi: RelayHub
+      startBlock: {{relayHub.birthBlock}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - Wallet
+        - Transaction
+      abis:
+        - name: RelayHub
+          file: ./abis/RelayHub.json
+      eventHandlers:
+        - event: TransactionRelayed(indexed address,indexed address,indexed address,bytes4,uint8,uint256)
+          handler: handleTransactionRelayed
+      file: ./src/wallet.ts
 
 templates:
   - kind: ethereum/contract
