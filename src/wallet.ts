@@ -2,7 +2,7 @@ import { Execution, Submission as SubmissionEvent, Deposit,
          OwnerAddition, OwnerRemoval, DailyLimitChange, 
          RequirementChange, GSNMultiSigWalletWithDailyLimit, 
          Confirmation, Revocation } from '../generated/templates/GSNMultiSigWalletWithDailyLimit/GSNMultiSigWalletWithDailyLimit'
-import { TransactionRelayed } from '../generated/RelayHub/RelayHub'
+import { TransactionRelayed, Deposited, Withdrawn } from '../generated/RelayHub/RelayHub'
 import { Wallet, Transaction, Action, } from '../generated/schema'
 import { zeroBigInt, oneBigInt, concat, padLeft } from './utils'
 import { log, Address, Bytes, crypto, ByteArray, BigInt, ethereum } from '@graphprotocol/graph-ts'
@@ -193,6 +193,30 @@ export function handleDeposit(event: Deposit): void {
     }
 }
 
+export function handleDeposited(event: Deposited): void {
+    let multisigAddr = event.params.recipient
+    let wallet = Wallet.load(multisigAddr.toHex())
+
+    if(wallet != null) {
+        wallet.balanceGaugeGSN = wallet.balanceGaugeGSN.plus(<BigInt> event.params.amount)
+        wallet.save()
+    } else {
+        log.warning("handleDeposited::Wallet {} not found", [multisigAddr.toHexString()])
+    }
+}
+
+export function handleWithdrawn(event: Withdrawn): void {
+    let multisigAddr = event.params.account
+    let wallet = Wallet.load(multisigAddr.toHex())
+
+    if(wallet != null) {
+        wallet.balanceGaugeGSN = wallet.balanceGaugeGSN.minus(<BigInt> event.params.amount)
+        wallet.save()
+    } else {
+        log.warning("handleDeposited::Wallet {} not found", [multisigAddr.toHexString()])
+    }
+}
+
 export function handleOwnerAddition(event: OwnerAddition): void {
     let multisigAddr = event.address
     let wallet = Wallet.load(multisigAddr.toHex())
@@ -300,6 +324,9 @@ export function handleTransactionRelayed(event: TransactionRelayed): void {
         let action = getAction(multisigAddr, event)
         action.sender = event.params.from 
         action.save()
+
+        wallet.balanceGaugeGSN = wallet.balanceGaugeGSN.minus(<BigInt> event.params.charge)
+        wallet.save()
     }
 }
 
