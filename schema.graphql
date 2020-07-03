@@ -40,7 +40,7 @@ type Wallet @entity {
     nextId              : BigInt!
 
     "Amount of ETH available for the Multisig wallet on GSN"
-    balanceGaugeGSN     : BigInt
+    balanceGSN          : BigInt!
 }
 
 type Transaction @entity {

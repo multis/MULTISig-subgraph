@@ -71,6 +71,10 @@ dataSources:
       eventHandlers:
         - event: TransactionRelayed(indexed address,indexed address,indexed address,bytes4,uint8,uint256)
           handler: handleTransactionRelayed
+        - event: Deposited(indexed address,indexed address,uint256)
+          handler: handleDeposited
+        - event: Withdrawn(indexed address,indexed address,uint256)
+          handler: handleWithdrawn
       file: ./src/wallet.ts
 
 templates:

@@ -198,10 +198,8 @@ export function handleDeposited(event: Deposited): void {
     let wallet = Wallet.load(multisigAddr.toHex())
 
     if(wallet != null) {
-        wallet.balanceGaugeGSN = wallet.balanceGaugeGSN.plus(<BigInt> event.params.amount)
+        wallet.balanceGSN = wallet.balanceGSN.plus(event.params.amount)
         wallet.save()
-    } else {
-        log.warning("handleDeposited::Wallet {} not found", [multisigAddr.toHexString()])
     }
 }
 
@@ -210,10 +208,8 @@ export function handleWithdrawn(event: Withdrawn): void {
     let wallet = Wallet.load(multisigAddr.toHex())
 
     if(wallet != null) {
-        wallet.balanceGaugeGSN = wallet.balanceGaugeGSN.minus(<BigInt> event.params.amount)
+        wallet.balanceGSN = wallet.balanceGSN.minus(event.params.amount)
         wallet.save()
-    } else {
-        log.warning("handleDeposited::Wallet {} not found", [multisigAddr.toHexString()])
     }
 }
 
@@ -325,7 +321,7 @@ export function handleTransactionRelayed(event: TransactionRelayed): void {
         action.sender = event.params.from 
         action.save()
 
-        wallet.balanceGaugeGSN = wallet.balanceGaugeGSN.minus(<BigInt> event.params.charge)
+        wallet.balanceGSN = wallet.balanceGSN.minus(event.params.charge)
         wallet.save()
     }
 }
