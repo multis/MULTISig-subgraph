@@ -22,6 +22,7 @@ export function handleContractInstantiation(event: ContractInstantiation): void 
   wallet.required            = multisigInstance.required()
   wallet.dailyLimit          = multisigInstance.dailyLimit()
   wallet.nextId              = zeroBigInt()
+  wallet.balanceGSN          = zeroBigInt()
 
   wallet.save()
 

@@ -38,6 +38,9 @@ type Wallet @entity {
 
     "Next ID (transaction-id) for outgoing transactions - represents getTransactionCount(pending:true, executed:true)"
     nextId              : BigInt!
+
+    "Amount of ETH available for the Multisig wallet on GSN"
+    balanceGSN          : BigInt!
 }
 
 type Transaction @entity {
