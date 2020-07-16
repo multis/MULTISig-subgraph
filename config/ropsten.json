@@ -1,7 +1,7 @@
 {
   "network": "ropsten",
   "factories": {
-    "gsn": {"addr": "0x78a389b693e0e3de1849f34e70bf4bcb57f0f2bb", "birthBlock": 8064274 },
+    "gsn": {"addr": "0x845E9479c3319157433050969cDd8f20513D3e0c", "birthBlock": 8304096 },
     "gnosis": {"addr": "0x5cb85db3e237cac78cbb3fd63e84488cac5bd3dd", "birthBlock": 667910}
   },
   "relayHub": {"addr": "0xD216153c06E857cD7f72665E0aF1d7D82172F494", "birthBlock": 6198900}
