@@ -63,6 +63,7 @@ export function handleSubmission(event: SubmissionEvent): void {
 
 export function handleConfirmation(event: Confirmation): void {
     let multisigAddr = event.address
+    let multisig = GSNMultiSigWalletWithDailyLimit.bind(multisigAddr)
 
     let action = getAction(multisigAddr, event)
     action.stamp = event.block.timestamp
@@ -76,12 +77,14 @@ export function handleConfirmation(event: Confirmation): void {
     let transaction = getTransaction(multisigAddr, event.params.transactionId, event)
     if(action.isSubmission) {
         transaction.creator = event.params.sender
-        transaction.save()
     }
+    transaction.confirmations = multisig.getConfirmationCount(event.params.transactionId)
+    transaction.save()
 }
 
 export function handleRevocation(event: Revocation): void {
     let multisigAddr = event.address
+    let multisig = GSNMultiSigWalletWithDailyLimit.bind(multisigAddr)
 
     let action = getAction(multisigAddr, event)
     action.stamp = event.block.timestamp
@@ -94,10 +97,8 @@ export function handleRevocation(event: Revocation): void {
 
 
     let transaction = getTransaction(multisigAddr, event.params.transactionId, event)
-    
-    let multisig = GSNMultiSigWalletWithDailyLimit.bind(multisigAddr)
-    let confirmationCount = multisig.getConfirmationCount(event.params.transactionId)
-    if(confirmationCount.equals(zeroBigInt())) {
+    transaction.confirmations = multisig.getConfirmationCount(event.params.transactionId)
+    if(transaction.confirmations.equals(zeroBigInt())) {
         transaction.stamp               = event.block.timestamp // overwrite the stamp
         transaction.hash                = event.transaction.hash // overwrite the hash
         transaction.block               = event.block.number // overwrite the block #
