@@ -78,7 +78,7 @@ export function handleConfirmation(event: Confirmation): void {
     if(action.isSubmission) {
         transaction.creator = event.params.sender
     }
-    transaction.confirmations = multisig.getConfirmationCount(event.params.transactionId)
+    transaction.confirmationCount = multisig.getConfirmationCount(event.params.transactionId)
     transaction.save()
 }
 
@@ -97,8 +97,8 @@ export function handleRevocation(event: Revocation): void {
 
 
     let transaction = getTransaction(multisigAddr, event.params.transactionId, event)
-    transaction.confirmations = multisig.getConfirmationCount(event.params.transactionId)
-    if(transaction.confirmations.equals(zeroBigInt())) {
+    transaction.confirmationCount = multisig.getConfirmationCount(event.params.transactionId)
+    if(transaction.confirmationCount.equals(zeroBigInt())) {
         transaction.stamp               = event.block.timestamp // overwrite the stamp
         transaction.hash                = event.transaction.hash // overwrite the hash
         transaction.block               = event.block.number // overwrite the block #

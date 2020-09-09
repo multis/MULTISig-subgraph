@@ -96,7 +96,7 @@ type Transaction @entity {
     data                : Bytes
 
     "Current confirmation count"
-    confirmations       : BigInt
+    confirmationCount   : BigInt
 
     "Optional field to store extra information of type BigInt"
     extraBigInt1        : BigInt
