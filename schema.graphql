@@ -95,6 +95,9 @@ type Transaction @entity {
     "Data of the transaction - smart contract input data bytecode (only for outgoing transactions) - see https://lab.miguelmota.com/ethereum-input-data-decoder/example/"
     data                : Bytes
 
+    "Current confirmation count"
+    confirmationCount   : BigInt
+
     "Optional field to store extra information of type BigInt"
     extraBigInt1        : BigInt
 
